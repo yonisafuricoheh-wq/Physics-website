@@ -34,12 +34,44 @@ function formatContent(text) {
   });
 }
 
-const STARTER_QUESTIONS = [
-  'What forces act on the object?',
-  'Why does friction oppose the motion?',
-  'How do I find the net force?',
-  'What determines the acceleration here?',
-];
+const STARTER_QUESTIONS = {
+  projectile: [
+    'What is the velocity at the highest point?',
+    'How long does the object stay in the air?',
+    'At what height do the two objects meet?',
+    'What is the acceleration at the peak?',
+  ],
+  inclined_plane: [
+    'What forces act on the block?',
+    'How does friction affect the acceleration?',
+    'How do I find the normal force on a slope?',
+    'What is the net force along the ramp?',
+  ],
+  pulley: [
+    'Why do both objects have the same acceleration?',
+    'How do I find the tension in the rope?',
+    'What is the net force on the system?',
+    'When does object B hit the floor?',
+  ],
+  collision: [
+    'Is momentum conserved here?',
+    'What is the velocity after the collision?',
+    'How much kinetic energy is lost?',
+    'What type of collision is this?',
+  ],
+  spring: [
+    'What is the spring constant?',
+    'Where is the equilibrium position?',
+    'How does amplitude affect the period?',
+    'What is the maximum velocity?',
+  ],
+  default: [
+    'What forces act on the object?',
+    'How do I find the acceleration?',
+    'What does Newton\'s second law say here?',
+    'How is energy conserved in this problem?',
+  ],
+};
 
 export default function SocraticPanel() {
   const [input, setInput] = useState('');
@@ -138,7 +170,7 @@ export default function SocraticPanel() {
       {/* Starter questions */}
       {tutorHistory.length === 0 && blueprint && (
         <div className="starters">
-          {STARTER_QUESTIONS.map(q => (
+          {(STARTER_QUESTIONS[blueprint.problem_type] || STARTER_QUESTIONS.default).map(q => (
             <button key={q} className="starter-btn" onClick={() => sendMessage(q)}>{q}</button>
           ))}
         </div>

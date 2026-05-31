@@ -2,75 +2,65 @@ import { useEffect, useRef, useCallback } from 'react';
 import { PhysicsEngine3D as PhysicsEngine } from '../engine/PhysicsEngine3D';
 import useStore from '../store/simulationStore';
 
-const FIXED_DT = 1 / 120;
-
 export function useSimulation() {
   const engineRef  = useRef(null);
   const rafRef     = useRef(null);
-  const accRef     = useRef(0);
   const lastTsRef  = useRef(null);
   const stateRef   = useRef('idle');
 
-  const blueprint   = useStore(s => s.blueprint);
-  const simState    = useStore(s => s.simState);
-  const timeScale   = useStore(s => s.timeScale);
-  const forceOverrides = useStore(s => s.forceOverrides);
-  const setSimState    = useStore(s => s.setSimState);
+  const blueprint        = useStore(s => s.blueprint);
+  const simState         = useStore(s => s.simState);
+  const timeScale        = useStore(s => s.timeScale);
+  const forceOverrides   = useStore(s => s.forceOverrides);
+  const setSimState      = useStore(s => s.setSimState);
   const tickObjectStates = useStore(s => s.tickObjectStates);
   const addSimTime       = useStore(s => s.addSimTime);
 
-  // Keep ref in sync so animation loop always sees current value
   useEffect(() => { stateRef.current = simState; }, [simState]);
 
-  // Re-init engine when blueprint changes
+  // Re-init engine whenever blueprint changes
   useEffect(() => {
     if (!blueprint) return;
     if (!engineRef.current) engineRef.current = new PhysicsEngine();
     engineRef.current.init(blueprint);
-    accRef.current = 0;
     lastTsRef.current = null;
   }, [blueprint]);
 
-  // Core animation loop
+  // Core animation loop — one physics step per frame with scaled dt
   const loop = useCallback((ts) => {
     if (stateRef.current !== 'running') return;
 
     if (lastTsRef.current === null) lastTsRef.current = ts;
-    const rawDt = Math.min((ts - lastTsRef.current) / 1000, 0.05);
+    const rawDt = Math.min((ts - lastTsRef.current) / 1000, 0.05); // cap at 50ms (tab focus spike)
     lastTsRef.current = ts;
 
-    const scaledDt = rawDt * timeScale;
-    accRef.current += scaledDt;
+    const physDt = rawDt * timeScale; // scale time — slow motion works automatically
 
-    let steps = 0;
-    while (accRef.current >= FIXED_DT && steps < 12) {
-      // Apply force overrides from teacher mode
-      if (engineRef.current) {
-        engineRef.current.clearExtraForces();
+    if (physDt > 0.0001 && engineRef.current) {
+      // Apply teacher-mode force overrides
+      engineRef.current.clearExtraForces();
+      if (blueprint) {
         Object.entries(forceOverrides).forEach(([forceId, override]) => {
-          const bp = blueprint;
-          if (!bp) return;
-          const force = bp.forces.find(f => f.id === forceId);
+          const force = blueprint.forces.find(f => f.id === forceId);
           if (!force) return;
           const rad = (override.angle_degrees * Math.PI) / 180;
-          const mag = override.magnitude;
-          engineRef.current.applyExtraForce(force.object_id, Math.cos(rad) * mag, Math.sin(rad) * mag);
+          engineRef.current.applyExtraForce(
+            force.object_id,
+            Math.cos(rad) * override.magnitude,
+            Math.sin(rad) * override.magnitude,
+          );
         });
       }
-      engineRef.current?.step(FIXED_DT);
-      accRef.current -= FIXED_DT;
-      steps++;
-    }
 
-    if (steps > 0 && engineRef.current) {
+      engineRef.current.step(physDt);
       tickObjectStates(engineRef.current.getState());
-      addSimTime(FIXED_DT * steps);
+      addSimTime(physDt);
     }
 
     rafRef.current = requestAnimationFrame(loop);
   }, [timeScale, forceOverrides, blueprint, tickObjectStates, addSimTime]);
 
-  // Start / stop the loop
+  // Start / stop the RAF
   useEffect(() => {
     if (simState === 'running') {
       lastTsRef.current = null;
@@ -92,16 +82,16 @@ export function useSimulation() {
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
     useStore.getState().resetSim();
     engineRef.current?.reset();
-    accRef.current = 0;
     lastTsRef.current = null;
   }, []);
 
   const stepFrame = useCallback(() => {
     if (simState === 'running' || !engineRef.current || !blueprint) return;
-    engineRef.current.step(FIXED_DT);
+    const dt = 1 / 60; // one visual frame worth of physics
+    engineRef.current.step(dt * timeScale);
     tickObjectStates(engineRef.current.getState());
-    addSimTime(FIXED_DT);
-  }, [simState, blueprint, tickObjectStates, addSimTime]);
+    addSimTime(dt * timeScale);
+  }, [simState, blueprint, timeScale, tickObjectStates, addSimTime]);
 
   return { play, pause, reset, stepFrame, engine: engineRef.current };
 }

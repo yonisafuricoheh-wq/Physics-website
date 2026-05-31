@@ -1,6 +1,7 @@
 import React, { useEffect, useCallback } from 'react';
 import useStore from './store/simulationStore';
 import { useSimulation } from './hooks/useSimulation';
+import { SimulationContext } from './contexts/SimulationContext';
 
 import PhysicsCanvas     from './components/Canvas/PhysicsCanvas3D';
 import ImageUpload       from './components/Upload/ImageUpload';
@@ -27,6 +28,7 @@ export default function App() {
   }, [onKey]);
 
   return (
+    <SimulationContext.Provider value={{ play, pause, reset, stepFrame }}>
     <div className="app">
       {/* ── Header ─────────────────────────────────────────── */}
       <header className="app-header">
@@ -65,6 +67,7 @@ export default function App() {
       {/* ── Missing data modal ─────────────────────────────── */}
       <MissingDataModal />
     </div>
+    </SimulationContext.Provider>
   );
 }
 

@@ -50,6 +50,43 @@ export class PhysicsEngine3D {
       const b = this.bodies[id];
       if (b) b.velocity.set(v.x, v.y, 0);
     });
+
+    // Pulley / Atwood machine — kinematic integration
+    this._pulleyState = null;
+    if (blueprint.problem_type === 'pulley') {
+      const rope = blueprint.constraints?.find(c => c.type === 'string');
+      if (rope) {
+        const bA = this.bodies[rope.object_a];
+        const bB = this.bodies[rope.object_b];
+        const objA = blueprint.objects.find(o => o.id === rope.object_a);
+        const objB = blueprint.objects.find(o => o.id === rope.object_b);
+        if (bA && bB && objA && objB) {
+          // Auto-detect which is on table vs hanging (table obj has higher y or same)
+          const aIsTable = objA.position.y >= objB.position.y;
+          const tableBody = aIsTable ? bA : bB;
+          const hangBody  = aIsTable ? bB : bA;
+          const tableObj  = aIsTable ? objA : objB;
+          const hangObj   = aIsTable ? objB : objA;
+          const tableSurf = blueprint.surfaces.find(s => s.type === 'line');
+          const mu_k      = tableSurf?.properties?.mu_k ?? 0;
+
+          // Make kinematic so cannon-es doesn't fight manual integration
+          tableBody.type = CANNON.Body.KINEMATIC;
+          hangBody.type  = CANNON.Body.KINEMATIC;
+
+          this._pulleyState = {
+            tableBody, hangBody,
+            mTable: tableObj.mass ?? 1,
+            mHang:  hangObj.mass  ?? 1,
+            tableY: tableObj.position.y,
+            hangX:  hangObj.position.x,
+            v:      0,
+            mu_k,
+            done:   false,
+          };
+        }
+      }
+    }
   }
 
   _mat(props) {
@@ -59,7 +96,7 @@ export class PhysicsEngine3D {
 
   _addSurface(surf) {
     if (!surf.points || surf.points.length < 2) return;
-    const entry = this._mat(surf.properties);
+    const entry = this._mat(surf.properties || {});
     this._materials[surf.id] = entry;
 
     const p1 = surf.points[0];
@@ -68,7 +105,7 @@ export class PhysicsEngine3D {
     if (surf.type === 'floor') {
       const body = new CANNON.Body({ mass: 0, material: entry.mat });
       body.addShape(new CANNON.Plane());
-      body.quaternion.setFromEuler(-Math.PI / 2, 0, 0); // normal → +Y
+      body.quaternion.setFromEuler(-Math.PI / 2, 0, 0);
       body.position.set(0, p1.y, 0);
       this.world.addBody(body);
       return;
@@ -77,31 +114,40 @@ export class PhysicsEngine3D {
     const cx = (p1.x + p2.x) / 2;
     const cy = (p1.y + p2.y) / 2;
     const dx = p2.x - p1.x, dy = p2.y - p1.y;
-    const len = Math.sqrt(dx * dx + dy * dy);
+    const len = Math.max(Math.sqrt(dx * dx + dy * dy), 1);
     const angle = Math.atan2(dy, dx);
+    const isVertical = surf.type === 'wall' || Math.abs(Math.sin(angle)) > 0.85;
 
     const body = new CANNON.Body({ mass: 0, material: entry.mat });
-    body.addShape(new CANNON.Box(new CANNON.Vec3(len / 2, 0.04, 2)));
-    body.position.set(cx, cy, 0);
-    body.quaternion.setFromEuler(0, 0, angle);
+    if (isVertical) {
+      // Upright box: thick in X, tall in Y — correct for a vertical wall
+      body.addShape(new CANNON.Box(new CANNON.Vec3(0.45, len / 2, 3)));
+      body.position.set(cx, cy, 0);
+      // no rotation — already upright
+    } else {
+      // Inclined or flat slab
+      body.addShape(new CANNON.Box(new CANNON.Vec3(len / 2, 0.06, 3)));
+      body.position.set(cx, cy, 0);
+      body.quaternion.setFromEuler(0, 0, angle);
+    }
     this.world.addBody(body);
   }
 
   _addObject(obj) {
-    const entry = this._mat({ ...obj.properties, restitution: obj.properties.restitution ?? 0 });
+    const entry = this._mat({ ...obj.properties, restitution: obj.properties?.restitution ?? 0 });
     this._materials[obj.id] = entry;
 
-    const isFixed  = obj.properties.is_fixed;
+    const isFixed  = obj.properties?.is_fixed ?? false;
     const mass     = isFixed ? 0 : Math.max(obj.mass ?? 1, 0.001);
-    const isCircle = obj.type === 'circle' || obj.type === 'pulley';
+    const isCircle = obj.type === 'circle' || obj.type === 'pulley' || obj.type === 'point_mass';
 
     let shape;
     if (isCircle) {
-      const r = Math.max((Math.max(obj.dimensions.width, obj.dimensions.height)) / 2, 0.05);
+      const r = Math.max((Math.max(obj.dimensions?.width ?? 0.6, obj.dimensions?.height ?? 0.6)) / 2, 0.15);
       shape = new CANNON.Sphere(r);
     } else {
-      const hw = Math.max(obj.dimensions.width  / 2, 0.05);
-      const hh = Math.max(obj.dimensions.height / 2, 0.05);
+      const hw = Math.max((obj.dimensions?.width  ?? 0.8) / 2, 0.15);
+      const hh = Math.max((obj.dimensions?.height ?? 0.5) / 2, 0.15);
       shape = new CANNON.Box(new CANNON.Vec3(hw, hh, 0.25));
     }
 
@@ -110,6 +156,13 @@ export class PhysicsEngine3D {
     body.position.set(obj.position.x, obj.position.y, 0);
     const rad = (obj.angle * Math.PI) / 180;
     body.quaternion.setFromEuler(0, 0, -rad);
+
+    // Apply initial velocity — check each component separately so {x:0, y:40} always fires
+    const iv = obj.initial_velocity;
+    if (iv && (Math.abs(iv.x ?? 0) > 0.001 || Math.abs(iv.y ?? 0) > 0.001)) {
+      body.velocity.set(iv.x ?? 0, iv.y ?? 0, 0);
+    }
+
     this.world.addBody(body);
     this.bodies[obj.id] = body;
   }
@@ -118,11 +171,38 @@ export class PhysicsEngine3D {
   clearExtraForces() { this._extraForces = {}; }
 
   step(dtSeconds) {
+    // Pulley: kinematic manual integration — bypass cannon-es dynamics for constrained bodies
+    if (this._pulleyState && !this._pulleyState.done) {
+      const ps = this._pulleyState;
+      const g  = Math.abs(this.world.gravity.y);
+      const netF = ps.mHang * g - ps.mu_k * ps.mTable * g;
+      const a    = netF > 0 ? netF / (ps.mTable + ps.mHang) : 0;
+      ps.v += a * dtSeconds;
+
+      // Drive via velocity — cannon-es integrates position from vel for KINEMATIC bodies
+      ps.tableBody.velocity.set(ps.v, 0, 0);
+      ps.tableBody.angularVelocity.set(0, 0, 0);
+      ps.tableBody.position.y = ps.tableY; // lock to table height
+
+      ps.hangBody.velocity.set(0, -ps.v, 0);
+      ps.hangBody.angularVelocity.set(0, 0, 0);
+      ps.hangBody.position.x = ps.hangX; // lock horizontal
+
+      // Stop when hanging body reaches floor
+      if (ps.hangBody.position.y <= 0.3) {
+        ps.hangBody.position.y = 0.3;
+        ps.tableBody.velocity.set(0, 0, 0);
+        ps.hangBody.velocity.set(0, 0, 0);
+        ps.v   = 0;
+        ps.done = true;
+      }
+    }
+
     Object.entries(this._extraForces).forEach(([id, f]) => {
       const b = this.bodies[id];
       if (b && b.mass > 0) b.applyForce(new CANNON.Vec3(f.x, f.y, 0));
     });
-    this.world.fixedStep(dtSeconds);
+    this.world.step(dtSeconds);
   }
 
   getState() {

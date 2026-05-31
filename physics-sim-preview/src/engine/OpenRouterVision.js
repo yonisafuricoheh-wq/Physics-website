@@ -1,4 +1,4 @@
-import { ANALYSIS_PROMPT, TUTOR_SYSTEM } from './GeminiVision.js';
+import { ANALYSIS_PROMPT, CRITIQUE_PROMPT, VELOCITY_FINAL_CHECK, extractJson, TUTOR_SYSTEM } from './GeminiVision.js';
 
 const BASE = 'https://openrouter.ai/api/v1/chat/completions';
 
@@ -17,7 +17,7 @@ function isUnavailable(status) { return status === 404 || status === 400 || stat
 export class OpenRouterVision {
   constructor(apiKey, modelId = OPENROUTER_DEFAULT_MODEL) {
     if (!apiKey) throw new Error('OpenRouter API key is required.');
-    this._apiKey = apiKey;
+    this._apiKey = apiKey.replace(/[^\x20-\x7E]/g, '').trim();
     this.modelId = modelId;
   }
 
@@ -77,47 +77,60 @@ export class OpenRouterVision {
     throw new Error(`All ${chain.length} models failed (timeout, rate-limit, or non-JSON).\nLast error: ${lastErr?.message}`);
   }
 
-  async analyzeImage(imageBase64, mimeType = 'image/jpeg', onFallback) {
+  async analyzeImage(imageBase64, mimeType = 'image/jpeg', onFallback, onPass) {
     const safeMime = mimeType === 'image/jpg' ? 'image/jpeg' : mimeType;
     const chain = [this.modelId, ...OPENROUTER_FALLBACK_CHAIN.filter(m => m !== this.modelId)];
     let lastErr;
 
     for (const modelId of chain) {
-      if (onFallback) onFallback(modelId); // notify UI which model we're trying right now
+      if (onFallback) onFallback(modelId);
       try {
-        const data = await this._post(modelId, {
-          messages: [{
-            role: 'user',
-            content: [
-              { type: 'text', text: ANALYSIS_PROMPT },
-              { type: 'image_url', image_url: { url: `data:${safeMime};base64,${imageBase64}` } },
-            ],
-          }],
-        });
+        // ── Pass 1: extract raw data ──────────────────────────────────
+        if (onPass) onPass(1, 'Extracting data…');
+        const imageMsg = {
+          role: 'user',
+          content: [
+            { type: 'text', text: ANALYSIS_PROMPT },
+            { type: 'image_url', image_url: { url: `data:${safeMime};base64,${imageBase64}` } },
+          ],
+        };
+        const res1 = await this._post(modelId, { messages: [imageMsg] }, 20000);
+        const raw1 = res1?.choices?.[0]?.message?.content;
+        if (!raw1) { const e = new Error(`${modelId} returned an empty response`); e.status = 400; throw e; }
+        const json1 = extractJson(raw1);
+        if (!json1) { const e = new Error(`${modelId} returned non-JSON`); e.status = 400; throw e; }
 
-        const content = data?.choices?.[0]?.message?.content;
-        if (!content) {
-          const e = new Error(`${modelId} returned an empty response`);
-          e.status = 400;
-          throw e;
-        }
-        const raw = content.trim();
-        // Strip markdown fences
-        let jsonStr = raw.replace(/^```(?:json)?\s*/im, '').replace(/\s*```\s*$/im, '').trim();
-        // If still not starting with {, find the first { ... } block
-        if (!jsonStr.startsWith('{')) {
-          const start = jsonStr.indexOf('{');
-          const end   = jsonStr.lastIndexOf('}');
-          if (start !== -1 && end !== -1) jsonStr = jsonStr.slice(start, end + 1);
-        }
+        // ── Pass 2: self-critique ─────────────────────────────────────
+        if (onPass) onPass(2, 'Self-checking…');
+        const history2 = [
+          imageMsg,
+          { role: 'assistant', content: raw1 },
+          { role: 'user',      content: CRITIQUE_PROMPT },
+        ];
+        let json2 = json1;
+        let raw2  = '';
         try {
-          return { data: JSON.parse(jsonStr), usedModel: modelId };
-        } catch (e) {
-          // Non-JSON response → treat as unavailable and try next model
-          const err = new Error(`${modelId} returned non-JSON`);
-          err.status = 400;
-          throw err;
-        }
+          const res2 = await this._post(modelId, { messages: history2 }, 20000);
+          raw2  = res2?.choices?.[0]?.message?.content || '';
+          json2 = extractJson(raw2) ?? json1;
+        } catch { /* pass 2 failure non-fatal */ }
+
+        // ── Pass 3: velocity-only final check ─────────────────────────
+        if (onPass) onPass(3, 'Validating velocities…');
+        let json3 = json2;
+        try {
+          const history3 = [
+            ...history2,
+            { role: 'assistant', content: raw2 },
+            { role: 'user',      content: VELOCITY_FINAL_CHECK },
+          ];
+          const res3 = await this._post(modelId, { messages: history3 }, 15000);
+          const raw3 = res3?.choices?.[0]?.message?.content || '';
+          json3 = extractJson(raw3) ?? json2;
+        } catch { /* pass 3 failure non-fatal */ }
+
+        return { data: json3, usedModel: modelId };
+
       } catch (err) {
         if (isUnavailable(err.status)) { lastErr = err; continue; }
         throw err;

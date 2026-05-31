@@ -1,6 +1,6 @@
 import React from 'react';
 import useStore from '../../store/simulationStore';
-import { useSimulation } from '../../hooks/useSimulation';
+import { useSimulationContext } from '../../contexts/SimulationContext';
 
 const TIMESCALES = [
   { label: '0.1×', val: 0.1 },
@@ -13,22 +13,16 @@ const TIMESCALES = [
 export default function TimeControls() {
   const blueprint  = useStore(s => s.blueprint);
   const simState   = useStore(s => s.simState);
-  const simTime    = useStore(s => s.simTime);
   const timeScale  = useStore(s => s.timeScale);
   const setTimeScale = useStore(s => s.setTimeScale);
 
   const missingData = useStore(s => s.missingData);
-  const { play, pause, reset, stepFrame } = useSimulation();
+  const { play, pause, reset, stepFrame } = useSimulationContext();
 
   const canRun = !!blueprint && missingData.length === 0;
 
   return (
     <div className="time-controls">
-      {/* Elapsed time */}
-      <div className="sim-time" title="Simulation time">
-        t = {simTime.toFixed(3)} s
-      </div>
-
       {/* Playback */}
       <div className="ctrl-group">
         <button className="ctrl-btn" onClick={reset} title="Reset (R)" disabled={!blueprint}>
