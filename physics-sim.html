@@ -1,0 +1,2242 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>PhysicsSim - AI-Powered 3D Physics Laboratory</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{--bg0:#08080f;--bg1:#0d0d18;--bg2:#13132a;--bg3:#1a1a3a;--border:#252545;--text:#dde0f5;--text2:#8888aa;--accent:#4fc3f7;--accent2:#7c4dff;--green:#66bb6a;--red:#ef5350;--orange:#ffa726;font-family:'Inter',system-ui,-apple-system,sans-serif;}
+html,body,#root{height:100%;overflow:hidden;}
+body{background:var(--bg0);color:var(--text);font-size:13px;}
+button{cursor:pointer;font-family:inherit;font-size:12px;border:none;outline:none;transition:background .12s,opacity .12s;}
+button:disabled{opacity:.35;cursor:not-allowed;}
+input,textarea{font-family:inherit;color:var(--text);background:transparent;border:none;outline:none;}
+input[type=number]::-webkit-inner-spin-button{opacity:.4;}
+select.input-field{appearance:none;background-repeat:no-repeat;background-position:right 10px center;padding-right:28px;cursor:pointer;}
+select.input-field option{background:#1a1a3a;color:#dde0f5;}
+*{scrollbar-width:thin;scrollbar-color:#444 transparent;}
+::-webkit-scrollbar{width:4px;}::-webkit-scrollbar-track{background:transparent;}::-webkit-scrollbar-thumb{background:#444;border-radius:2px;}
+.app{display:flex;flex-direction:column;height:100vh;background:var(--bg0);}
+.app-header{height:50px;flex-shrink:0;display:flex;align-items:center;gap:12px;padding:0 18px;border-bottom:1px solid var(--border);background:var(--bg1);box-shadow:0 1px 8px rgba(0,0,0,.3);}
+.app-logo{font-size:17px;font-weight:700;color:var(--accent);letter-spacing:-.3px;}
+.app-logo span{color:var(--accent2);}
+.app-subtitle{font-size:11px;color:var(--text2);flex:1;}
+.app-body{display:flex;flex:1;overflow:hidden;}
+.left-panel{width:256px;flex-shrink:0;display:flex;flex-direction:column;overflow-y:auto;border-right:1px solid var(--border);background:var(--bg1);}
+.canvas-wrapper{flex:1;position:relative;overflow:hidden;}
+.right-panel{width:310px;flex-shrink:0;display:flex;flex-direction:column;border-left:1px solid var(--border);background:var(--bg1);}
+.bottom-bar{height:52px;flex-shrink:0;display:flex;align-items:center;gap:12px;padding:0 14px;border-top:1px solid var(--border);background:var(--bg1);}
+.section{padding:12px 12px 0;}.section-title{font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--text2);margin-bottom:8px;}
+.input-field{background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:6px 10px;color:var(--text);font-size:12px;width:100%;transition:border-color .15s;}
+.input-field:focus{border-color:var(--accent);}
+.btn-primary{background:var(--accent2);color:#fff;padding:6px 12px;border-radius:6px;font-weight:500;font-size:12px;}
+.btn-primary:hover:not(:disabled){background:#9c6fff;}
+.btn-secondary{background:var(--bg3);color:var(--text);padding:6px 10px;border-radius:6px;border:1px solid var(--border);font-size:12px;}
+.btn-secondary:hover:not(:disabled){background:#252545;}
+.upload-panel{display:flex;flex-direction:column;gap:2px;}
+.drop-zone{border:1.5px dashed var(--border);border-radius:10px;padding:14px;text-align:center;cursor:pointer;transition:border-color .2s,background .2s,box-shadow .2s;min-height:88px;display:flex;align-items:center;justify-content:center;}
+.drop-zone:hover,.drop-zone.dragging{border-color:var(--accent);background:rgba(79,195,247,.05);box-shadow:0 0 0 3px rgba(79,195,247,.08);}
+.drop-hint{display:flex;flex-direction:column;gap:5px;color:var(--text2);font-size:12px;}
+.status-msg{font-size:11px;margin-top:6px;padding:6px 9px;border-radius:6px;display:flex;align-items:center;gap:6px;line-height:1.4;}
+.status-msg.analyzing{background:rgba(79,195,247,.1);color:var(--accent);border:1px solid rgba(79,195,247,.2);}
+.status-msg.error{background:rgba(239,83,80,.1);color:var(--red);border:1px solid rgba(239,83,80,.2);}
+.status-msg.done{background:rgba(102,187,106,.1);color:var(--green);border:1px solid rgba(102,187,106,.2);}
+.spinner{width:12px;height:12px;border-radius:50%;border:2px solid transparent;border-top-color:var(--accent);animation:spin .7s linear infinite;display:inline-block;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.bp-summary{background:var(--bg2);border-radius:10px;padding:10px;border:1px solid var(--border);}
+.bp-row{display:flex;justify-content:space-between;align-items:center;padding:4px 0;font-size:12px;color:var(--text2);border-bottom:1px solid rgba(255,255,255,.04);}
+.bp-row:last-of-type{border-bottom:none;}.bp-row .val{color:var(--text);font-family:'JetBrains Mono',monospace;font-size:11px;}
+.time-controls{display:flex;align-items:center;gap:10px;flex:1;}.ctrl-group{display:flex;align-items:center;gap:4px;}
+.ctrl-btn{background:var(--bg3);color:var(--text);width:32px;height:32px;border-radius:6px;font-size:14px;display:flex;align-items:center;justify-content:center;border:1px solid var(--border);}
+.ctrl-btn:hover:not(:disabled){background:var(--bg2);border-color:var(--accent);}
+.ctrl-btn.active{background:rgba(79,195,247,.15);border-color:var(--accent);color:var(--accent);}
+.ctrl-btn.teacher{color:#ab47bc;}.ctrl-btn.active.teacher{background:rgba(171,71,188,.15);border-color:#ab47bc;}
+.timescale-btn{background:var(--bg3);color:var(--text2);padding:4px 7px;border-radius:5px;font-size:11px;border:1px solid var(--border);}
+.timescale-btn:hover{background:var(--bg2);color:var(--text);}
+.timescale-btn.active{background:rgba(79,195,247,.12);color:var(--accent);border-color:var(--accent);}
+.missing-warning{font-size:11px;color:var(--orange);background:rgba(255,167,38,.1);padding:4px 8px;border-radius:5px;}
+.vector-controls{display:flex;align-items:center;gap:6px;}
+.toggle-btn{background:transparent;color:var(--text2);padding:4px 8px;border-radius:5px;font-size:11px;border:1px solid var(--border);white-space:nowrap;}
+.toggle-btn:hover{color:var(--text);background:var(--bg3);}
+.toggle-btn.active{color:var(--accent);border-color:var(--accent);background:rgba(79,195,247,.08);}
+.force-legend{display:flex;align-items:center;gap:8px;margin-left:8px;}.legend-item{display:flex;align-items:center;color:var(--text2);font-size:11px;}
+.tutor-panel{display:flex;flex-direction:column;height:100%;overflow:hidden;}
+.tutor-header{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-bottom:1px solid var(--border);flex-shrink:0;font-weight:600;font-size:13px;}
+.badge{font-size:10px;font-weight:500;padding:2px 6px;border-radius:10px;}
+.badge.green{background:rgba(102,187,106,.15);color:var(--green);}.badge.red{background:rgba(239,83,80,.15);color:var(--red);}
+.tutor-messages{flex:1;overflow-y:auto;padding:10px 12px;display:flex;flex-direction:column;gap:10px;}
+.tutor-welcome{color:var(--text2);font-size:12px;line-height:1.6;}
+.tutor-msg{display:flex;flex-direction:column;gap:3px;max-width:96%;}
+.tutor-msg.user{align-self:flex-end;}.tutor-msg.assistant{align-self:flex-start;}
+.msg-role{font-size:10px;font-weight:600;letter-spacing:.05em;color:var(--text2);text-transform:uppercase;}
+.tutor-msg.user .msg-role{text-align:right;}
+.msg-body{padding:8px 10px;border-radius:8px;font-size:12px;line-height:1.6;white-space:pre-wrap;word-break:break-word;}
+.tutor-msg.user .msg-body{background:rgba(124,77,255,.18);border-radius:8px 8px 2px 8px;}
+.tutor-msg.assistant .msg-body{background:var(--bg3);border-radius:2px 8px 8px 8px;}
+.force-highlight{color:#FFE082;font-weight:600;text-shadow:0 0 8px rgba(255,224,130,.6);padding:0 1px;border-radius:2px;}
+.typing-dots{display:flex;gap:5px;padding:10px 4px;}
+.typing-dots span{width:7px;height:7px;border-radius:50%;background:var(--text2);animation:bounce 1s ease-in-out infinite;}
+.typing-dots span:nth-child(1){animation-delay:0s;}.typing-dots span:nth-child(2){animation-delay:.2s;}.typing-dots span:nth-child(3){animation-delay:.4s;}
+@keyframes bounce{0%,80%,100%{transform:scale(.6);opacity:.4;}40%{transform:scale(1);opacity:1;}}
+.starters{display:flex;flex-direction:column;gap:4px;padding:6px 12px;flex-shrink:0;}
+.starter-btn{background:var(--bg2);color:var(--text2);text-align:left;padding:7px 10px;border-radius:7px;border:1px solid var(--border);font-size:11px;transition:all .15s;}
+.starter-btn:hover{color:var(--accent);border-color:var(--accent);background:rgba(79,195,247,.07);transform:translateX(2px);}
+.tutor-input-area{display:flex;gap:6px;padding:10px 12px;border-top:1px solid var(--border);flex-shrink:0;}
+.tutor-input{flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:7px 10px;color:var(--text);font-size:12px;resize:none;line-height:1.5;}
+.tutor-input:focus{border-color:var(--accent);}
+.send-btn{width:36px;height:36px;border-radius:8px;background:var(--accent2);color:#fff;font-size:16px;display:flex;align-items:center;justify-content:center;align-self:flex-end;}
+.send-btn:hover:not(:disabled){background:#9c6fff;}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;z-index:100;backdrop-filter:blur(4px);}
+.modal{background:var(--bg2);border:1px solid var(--border);border-radius:12px;width:460px;max-height:80vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.5);}
+.modal-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;flex-direction:column;gap:2px;}
+.modal-header>span:first-child{font-weight:700;font-size:15px;color:var(--orange);}
+.modal-body{overflow-y:auto;padding:16px 20px;display:flex;flex-direction:column;gap:14px;}
+.modal-footer{padding:10px 20px;border-top:1px solid var(--border);}
+.missing-field{background:var(--bg3);border-radius:8px;padding:10px 12px;}
+.field-desc{font-size:12px;color:var(--text);line-height:1.4;}
+.field-path{font-size:10px;color:var(--text2);font-family:'JetBrains Mono',monospace;margin-top:2px;}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script type="text/babel" data-type="module" data-presets="react">
+import React, {
+  useState, useRef, useEffect, useCallback, useMemo, memo,
+  createContext, useContext
+} from 'https://esm.sh/react@18.3.1';
+import { createRoot } from 'https://esm.sh/react-dom@18.3.1/client';
+import * as THREE from 'https://esm.sh/three@0.167.1';
+import { Canvas, useFrame, useThree } from 'https://esm.sh/@react-three/fiber@8.17.10?deps=react@18.3.1,three@0.167.1';
+import { OrbitControls, Grid, Text } from 'https://esm.sh/@react-three/drei@9.122.0?deps=react@18.3.1,three@0.167.1,@react-three/fiber@8.17.10';
+import * as CANNON from 'https://esm.sh/cannon-es@0.20.0';
+import { create } from 'https://esm.sh/zustand@4.5.2?deps=react@18.3.1';
+import { GoogleGenerativeAI } from 'https://esm.sh/@google/generative-ai@0.24.1';
+
+/* ================================================================
+   DEMO BLUEPRINT
+================================================================ */
+const DEMO_BLUEPRINT = {
+  problem_type: 'inclined_plane',
+  description: 'A 5 kg block slides down a 30 degree frictionful inclined plane.',
+  coordinate_system: { origin: { x: 0, y: 0 } },
+  environment: { g: 9.8, medium: 'air' },
+  objects: [{
+    id: 'block_1', type: 'rectangle', label: 'm = 5 kg', mass: 5.0,
+    position: { x: 0, y: 2.887 }, dimensions: { width: 0.55, height: 0.38 },
+    angle: 30, initial_velocity: { x: 0, y: 0 },
+    properties: { mu_s: 0.25, mu_k: 0.2, spring_constant: null, is_fixed: false, restitution: 0 },
+  }],
+  surfaces: [
+    { id: 'incline_1', type: 'line', label: 'theta=30', points: [{ x: -4.0, y: 0 }, { x: 4.0, y: 4.619 }], angle: 30, length: 9.238, properties: { mu_s: 0.25, mu_k: 0.2, is_frictionless: false } },
+    { id: 'ground_1', type: 'floor', label: 'ground', points: [{ x: -5, y: 0 }, { x: 5, y: 0 }], angle: 0, length: 10, properties: { mu_s: 0.5, mu_k: 0.4, is_frictionless: false } },
+  ],
+  forces: [
+    { id: 'w_block1', type: 'gravity', label: 'mg', object_id: 'block_1', pivot_point: { x: 0, y: 2.887 }, magnitude: 49.0, angle_degrees: 270, vector: { x: 0, y: -49.0 }, color_type: 'gravity', known: true },
+    { id: 'n_block1', type: 'normal', label: 'N', object_id: 'block_1', pivot_point: { x: 0, y: 2.887 }, magnitude: 42.44, angle_degrees: 120, vector: { x: -21.22, y: 36.75 }, color_type: 'normal', known: true },
+    { id: 'f_block1', type: 'friction', label: 'fk', object_id: 'block_1', pivot_point: { x: 0, y: 2.887 }, magnitude: 8.49, angle_degrees: 30, vector: { x: 7.35, y: 4.25 }, color_type: 'friction', known: true },
+  ],
+  constraints: [],
+  initial_conditions: { t0: 0, velocities: {} },
+  missing_data: [],
+  known_results: { acceleration: 3.2, description: 'a approx 3.20 m/s^2 down the slope' },
+  known_values: {},
+};
+/* ================================================================
+   AI VISION — PROMPTS
+================================================================ */
+const ANALYSIS_PROMPT = `Output ONLY a valid JSON object. No markdown. No code fences. No explanation. Start directly with {
+
+You are reading a Hebrew high-school (Bagrut) physics problem image and extracting data into JSON.
+Read ONLY what is visible. Do not calculate. Do not guess. Set null for anything not labeled.
+
+STEP 1: CLASSIFY — choose ONE problem_type:
+  "projectile"      Ball flying through air. Hebrew: zarrika, nefila hofshit
+  "inclined_plane"  Block on a ramp. Hebrew: mishlav meshupaa
+  "pulley"          Rope over a pulley. Hebrew: galgelet, haval
+  "collision"       Two objects that hit. Hebrew: hitnagshut
+  "spring"          Spring attached to mass. Hebrew: kapitz
+  "other"           Anything else.
+
+KEY RULES:
+  Rope+pulley visible -> ALWAYS "pulley"
+  Block on slope -> ALWAYS "inclined_plane"
+  Free fall (v0=0) -> "projectile" with initial_velocity={x:0,y:0}
+
+STEP 2: READ OBJECTS & POSITIONS
+For each object:
+  label      - text next to it
+  mass       - kg value if labeled, else null
+  position.x - horizontal meters: if distance D labeled between two ground objects -> left at x=0, right at x=D
+  position.y - height above ground in meters
+
+STEP 3: READ VELOCITIES
+Read from ARROWHEAD TIP direction.
+  up    -> {x:0,   y:+v}
+  down  -> {x:0,   y:-v}
+  right -> {x:+v,  y:0}
+  left  -> {x:-v,  y:0}
+  angle theta right -> {x:+v*cos(theta), y:+v*sin(theta)}
+  angle theta left  -> {x:-v*cos(theta), y:+v*sin(theta)}
+
+COMMON ANGLES: 30: cos=0.866 sin=0.500 | 37: cos=0.800 sin=0.600 | 45: cos=0.707 sin=0.707
+               53: cos=0.600 sin=0.800 | 60: cos=0.500 sin=0.866
+
+STEP 4: EXTRACT ALL LABELED QUANTITIES -> known_values:
+  t/zman -> time (s)
+  k/kapitz -> spring_constant (N/m)
+  T/metah -> tension (N)
+  mu_k -> mu_k (also set on surface)
+  mu_s -> mu_s
+  g -> environment.g (10 if labeled g=10, else 9.8)
+  a -> acceleration (m/s^2)
+  D/distance -> distance (m)
+  H/h/govah -> height (m)
+  theta/angle -> angle_degrees
+
+STEP 5: PROBLEM-SPECIFIC:
+  PROJECTILE two ground objects: left x=0, right x=D. Read each arrow separately.
+  PROJECTILE building: wall points from base to top, balls near building x.
+  INCLINED: ramp type="line", angle=slope, mu_k from image.
+  PULLEY: both objects start at rest. Constraint type="string".
+  COLLISION: moving right -> x=+v, left -> x=-v.
+  SPRING: k -> known_values.spring_constant AND objects[].properties.spring_constant.
+
+STEP 6: SURFACES — always include floor.
+
+OUTPUT SCHEMA:
+{
+  "problem_type": "projectile|inclined_plane|pulley|collision|spring|other",
+  "description": "one sentence",
+  "environment": {"g": 9.8},
+  "objects": [
+    {"id":"obj_a","type":"circle|rectangle","label":"A","mass":null,
+     "position":{"x":7,"y":45},"dimensions":{"width":0.8,"height":0.6},"angle":0,
+     "initial_velocity":{"x":0,"y":40},
+     "properties":{"mu_k":null,"mu_s":null,"spring_constant":null,"is_fixed":false}}
+  ],
+  "surfaces": [
+    {"id":"floor","type":"floor","label":"","points":[{"x":-5,"y":0},{"x":30,"y":0}],"angle":0,"length":35,"properties":{"mu_k":0,"is_frictionless":true}}
+  ],
+  "forces": [],
+  "constraints": [],
+  "known_values": {"time":null,"spring_constant":null,"tension":null,"mu_k":null,"mu_s":null,"distance":null,"height":null,"angle_degrees":null,"acceleration":null}
+}
+`;
+
+const CRITIQUE_PROMPT = `Re-examine the image and fix your JSON. Check:
+1. PROBLEM TYPE: rope+pulley -> "pulley" never "projectile"; block on slope -> "inclined_plane"
+2. OBJECT COUNT: count every ball/block/mass exactly.
+3. HORIZONTAL POSITIONS: distance label D between two ground objects -> left x=0, right x=D.
+4. VELOCITY DIRECTIONS: look at arrowhead tip. Diagonal arrow MUST have both x!=0 and y!=0. 53 -> cos=0.6 sin=0.8.
+5. HEIGHTS: position.y matches labeled height.
+6. MASSES: exact values from labels, null if not shown.
+7. KNOWN VALUES: scan for t, k, T, mu_k, mu_s, g, a, D, H, theta. Fill known_values.
+8. FRICTION: mu_k labeled -> copy to surface properties.mu_k AND known_values.mu_k.
+Output corrected JSON only.`;
+
+const VELOCITY_FINAL_CHECK = `Final check - three things:
+A. POSITIONS: horizontal distance D labeled -> one object at x=0, other at x=D.
+B. VELOCITIES: diagonal arrow MUST have both x!=0 and y!=0.
+   53.13: cos=0.6 sin=0.8 | 37: cos=0.8 sin=0.6 | 45: cos=0.707 sin=0.707
+C. KNOWN VALUES: verify known_values has every labeled quantity. masses filled if labeled.
+Output final corrected JSON only.`;
+
+function extractJson(text) {
+  if (!text) return null;
+  let s = text.trim().replace(/^```(?:json)?\s*/im, '').replace(/\s*```\s*$/im, '').trim();
+  if (!s.startsWith('{')) {
+    const i = s.indexOf('{'), j = s.lastIndexOf('}');
+    if (i !== -1 && j !== -1) s = s.slice(i, j + 1);
+  }
+  try { return JSON.parse(s); } catch { return null; }
+}
+
+const TUTOR_SYSTEM = `You are a Socratic Physics Tutor embedded in a 2D physics simulation.
+Guide students with questions, not direct answers.
+When mentioning a force label wrap it in double-asterisks so it glows: **mg**
+Keep responses to 3-4 sentences. Be precise with numbers from simulation data.`;
+/* ================================================================
+   GEMINI VISION ENGINE
+================================================================ */
+const MODEL_API_VERSION = {
+  'gemma-4-31b-it': 'v1beta', 'gemma-4-9b-it': 'v1beta',
+  'gemini-2.0-flash': 'v1beta', 'gemini-2.0-flash-lite': 'v1beta', 'gemini-1.5-flash': 'v1beta',
+};
+const FALLBACK_CHAIN = ['gemma-4-31b-it', 'gemini-2.0-flash', 'gemini-2.0-flash-lite'];
+const AVAILABLE_MODELS = [
+  { id: 'gemma-4-31b-it', label: 'Gemma 4 31B (recommended)' },
+  { id: 'gemini-2.0-flash', label: 'Gemini 2.0 Flash' },
+  { id: 'gemma-4-9b-it', label: 'Gemma 4 9B (fastest)' },
+  { id: 'gemini-2.0-flash-lite', label: 'Gemini 2.0 Flash Lite' },
+];
+
+function isZeroQuota(err) {
+  const msg = err?.message || '';
+  return msg.includes('429') && (msg.includes('"limit": 0') || msg.includes('limit: 0'));
+}
+function isModelUnavailable(err) {
+  const msg = err?.message || '';
+  return msg.includes('404') || msg.toLowerCase().includes('not found');
+}
+function friendlyError(err, modelId) {
+  const msg = err?.message || String(err);
+  if (msg.includes('API key not valid') || msg.includes('API_KEY_INVALID'))
+    return `Invalid Gemini API key. Get one at aistudio.google.com\n\n${msg}`;
+  if (msg.includes('403')) return `Access denied (403). Check billing for "${modelId}".\n\n${msg}`;
+  if (isZeroQuota(err)) return `"${modelId}" zero free-tier quota - switch models.\n\n${msg}`;
+  if (msg.includes('429') || msg.includes('RESOURCE_EXHAUSTED')) return `Rate limit (429) - retry in ~1 min.\n\n${msg}`;
+  if (msg.includes('Failed to fetch') || msg.includes('NetworkError')) return `Network error - check internet.\n\n${msg}`;
+  return msg;
+}
+function buildGeminiModel(genAI, modelId) {
+  const apiVersion = MODEL_API_VERSION[modelId] ?? 'v1beta';
+  return genAI.getGenerativeModel({ model: modelId }, { apiVersion });
+}
+
+class GeminiVision {
+  constructor(apiKey, modelId = 'gemini-2.0-flash') {
+    if (!apiKey) throw new Error('Gemini API key is required.');
+    this._apiKey = apiKey;
+    this.modelId = modelId;
+    this.genAI = new GoogleGenerativeAI(apiKey);
+    this.model = buildGeminiModel(this.genAI, modelId);
+  }
+
+  async testConnection() {
+    const chain = [this.modelId, ...FALLBACK_CHAIN.filter(m => m !== this.modelId)];
+    let lastErr;
+    for (const modelId of chain) {
+      const model = buildGeminiModel(this.genAI, modelId);
+      try {
+        await model.generateContent('Reply with the single word: OK');
+        return { ok: true, modelId };
+      } catch (err) {
+        if (isZeroQuota(err) || isModelUnavailable(err)) { lastErr = err; continue; }
+        throw new Error(friendlyError(err, modelId));
+      }
+    }
+    throw new Error(`All Gemini models unavailable.\nLast: ${lastErr?.message}`);
+  }
+
+  async analyzeImage(imageBase64, mimeType = 'image/jpeg', onFallback, onPass) {
+    const safeMime = mimeType === 'image/jpg' ? 'image/jpeg' : mimeType;
+    const chain = [this.modelId, ...FALLBACK_CHAIN.filter(m => m !== this.modelId)];
+    let lastErr;
+    for (const modelId of chain) {
+      const model = buildGeminiModel(this.genAI, modelId);
+      try {
+        if (onPass) onPass(1, 'Extracting data...');
+        const session = model.startChat({ history: [] });
+        const res1 = await session.sendMessage([
+          ANALYSIS_PROMPT,
+          { inlineData: { data: imageBase64, mimeType: safeMime } },
+        ]);
+        const raw1 = res1.response.text().trim();
+        const json1 = extractJson(raw1);
+        if (!json1) throw new Error(`${modelId} returned non-JSON.\n${raw1.substring(0, 400)}`);
+        if (modelId !== this.modelId && onFallback) onFallback(modelId);
+
+        if (onPass) onPass(2, 'Self-checking...');
+        let json2 = json1, raw2 = '';
+        try {
+          const res2 = await session.sendMessage(CRITIQUE_PROMPT);
+          raw2 = res2.response.text().trim();
+          json2 = extractJson(raw2) ?? json1;
+        } catch { /* non-fatal */ }
+
+        if (onPass) onPass(3, 'Validating...');
+        let json3 = json2;
+        try {
+          const res3 = await session.sendMessage(VELOCITY_FINAL_CHECK);
+          json3 = extractJson(res3.response.text().trim()) ?? json2;
+        } catch { /* non-fatal */ }
+
+        return { data: json3, usedModel: modelId };
+      } catch (err) {
+        if (isZeroQuota(err) || isModelUnavailable(err)) { lastErr = err; continue; }
+        throw new Error(friendlyError(err, modelId));
+      }
+    }
+    throw new Error(`All Gemini models unavailable.\nLast: ${lastErr?.message}`);
+  }
+
+  async chat(userMessage, blueprintSummary, history = []) {
+    const systemMsg = `${TUTOR_SYSTEM}\n\nCurrent simulation:\n${blueprintSummary}`;
+    const geminiHistory = history.map(m => ({
+      role: m.role === 'assistant' ? 'model' : 'user',
+      parts: [{ text: m.content }],
+    }));
+    try {
+      const session = this.model.startChat({
+        history: [
+          { role: 'user', parts: [{ text: systemMsg }] },
+          { role: 'model', parts: [{ text: 'Understood. Ready to guide.' }] },
+          ...geminiHistory,
+        ],
+      });
+      const result = await session.sendMessage(userMessage);
+      return result.response.text();
+    } catch (err) {
+      if (isZeroQuota(err)) {
+        const next = FALLBACK_CHAIN.find(m => m !== this.modelId);
+        if (next) return new GeminiVision(this._apiKey, next).chat(userMessage, blueprintSummary, history);
+      }
+      throw new Error(friendlyError(err, this.modelId));
+    }
+  }
+
+  static extractHighlightedForces(text) {
+    const matches = text.match(/\*\*([^*]+)\*\*/g) || [];
+    return matches.map(m => m.replace(/\*\*/g, '').trim());
+  }
+}
+/* ================================================================
+   GROQ VISION ENGINE
+================================================================ */
+const GROQ_BASE = 'https://api.groq.com/openai/v1/chat/completions';
+const GROQ_MODELS = [
+  { id: 'meta-llama/llama-4-scout-17b-16e-instruct', label: 'Llama 4 Scout 17B (recommended)' },
+  { id: 'meta-llama/llama-4-maverick-17b-128e-instruct', label: 'Llama 4 Maverick 17B' },
+];
+const GROQ_FALLBACK_CHAIN = GROQ_MODELS.map(m => m.id);
+const GROQ_DEFAULT_MODEL  = GROQ_MODELS[0].id;
+
+function isGroqUnavailable(status) {
+  return status === 404 || status === 400 || status === 429 || status === 408;
+}
+
+class GroqVision {
+  constructor(apiKey, modelId = GROQ_DEFAULT_MODEL) {
+    if (!apiKey) throw new Error('Groq API key is required.');
+    this._apiKey = apiKey.replace(/[^\x20-\x7E]/g, '').trim();
+    this.modelId = modelId;
+  }
+
+  async _post(modelId, body, timeoutMs = 20000) {
+    const controller = new AbortController();
+    const timeout = new Promise((_, reject) => setTimeout(() => {
+      controller.abort();
+      const e = new Error(`${modelId} timed out after ${timeoutMs / 1000}s`); e.status = 408; reject(e);
+    }, timeoutMs));
+    const request = fetch(GROQ_BASE, {
+      method: 'POST', signal: controller.signal,
+      headers: { 'Authorization': `Bearer ${this._apiKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: modelId, ...body }),
+    }).then(async res => {
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        const msg = err?.error?.message || res.statusText;
+        const e = new Error(`Groq ${res.status}: ${msg}`); e.status = res.status;
+        if (res.status === 401) e.message = `Invalid Groq API key - get one free at console.groq.com\n\n${msg}`;
+        throw e;
+      }
+      return res.json();
+    });
+    return Promise.race([request, timeout]);
+  }
+
+  async testConnection() {
+    const chain = [this.modelId, ...GROQ_FALLBACK_CHAIN.filter(m => m !== this.modelId)];
+    let lastErr;
+    for (const modelId of chain) {
+      try {
+        await this._post(modelId, { messages: [{ role: 'user', content: 'Reply with the single word: OK' }], max_tokens: 5 });
+        return { ok: true, modelId };
+      } catch (err) { if (isGroqUnavailable(err.status)) { lastErr = err; continue; } throw err; }
+    }
+    throw new Error(`All Groq models unavailable.\n${lastErr?.message}`);
+  }
+
+  async analyzeImage(imageBase64, mimeType = 'image/jpeg', onFallback, onPass) {
+    const safeMime = mimeType === 'image/jpg' ? 'image/jpeg' : mimeType;
+    const chain = [this.modelId, ...GROQ_FALLBACK_CHAIN.filter(m => m !== this.modelId)];
+    let lastErr;
+    for (const modelId of chain) {
+      if (onFallback) onFallback(modelId);
+      try {
+        if (onPass) onPass(1, 'Extracting data...');
+        const imageMsg = {
+          role: 'user',
+          content: [
+            { type: 'text', text: ANALYSIS_PROMPT },
+            { type: 'image_url', image_url: { url: `data:${safeMime};base64,${imageBase64}` } },
+          ],
+        };
+        const res1 = await this._post(modelId, { messages: [imageMsg], max_tokens: 2048 }, 30000);
+        const raw1 = res1?.choices?.[0]?.message?.content;
+        if (!raw1) { const e = new Error(`${modelId} empty response`); e.status = 400; throw e; }
+        const json1 = extractJson(raw1);
+        if (!json1) { const e = new Error(`${modelId} returned non-JSON`); e.status = 400; throw e; }
+
+        if (onPass) onPass(2, 'Self-checking...');
+        const history2 = [imageMsg, { role: 'assistant', content: raw1 }, { role: 'user', content: CRITIQUE_PROMPT }];
+        let json2 = json1, raw2 = '';
+        try {
+          const res2 = await this._post(modelId, { messages: history2, max_tokens: 2048 }, 25000);
+          raw2 = res2?.choices?.[0]?.message?.content || '';
+          json2 = extractJson(raw2) ?? json1;
+        } catch { /* non-fatal */ }
+
+        if (onPass) onPass(3, 'Validating...');
+        let json3 = json2;
+        try {
+          const history3 = [...history2, { role: 'assistant', content: raw2 }, { role: 'user', content: VELOCITY_FINAL_CHECK }];
+          const res3 = await this._post(modelId, { messages: history3, max_tokens: 1024 }, 20000);
+          json3 = extractJson(res3?.choices?.[0]?.message?.content || '') ?? json2;
+        } catch { /* non-fatal */ }
+
+        return { data: json3, usedModel: modelId };
+      } catch (err) { if (isGroqUnavailable(err.status)) { lastErr = err; continue; } throw err; }
+    }
+    throw new Error(`All Groq models failed.\nLast: ${lastErr?.message}`);
+  }
+
+  async chat(userMessage, blueprintSummary, history = []) {
+    const systemMsg = `${TUTOR_SYSTEM}\n\nCurrent simulation:\n${blueprintSummary}`;
+    const messages = [
+      { role: 'system', content: systemMsg },
+      ...history.map(m => ({ role: m.role === 'assistant' ? 'assistant' : 'user', content: m.content })),
+      { role: 'user', content: userMessage },
+    ];
+    const chain = [this.modelId, ...GROQ_FALLBACK_CHAIN.filter(m => m !== this.modelId)];
+    let lastErr;
+    for (const modelId of chain) {
+      try {
+        const data = await this._post(modelId, { messages });
+        const reply = data?.choices?.[0]?.message?.content;
+        if (!reply) { const e = new Error('empty reply'); e.status = 400; throw e; }
+        return reply;
+      } catch (err) { if (isGroqUnavailable(err.status)) { lastErr = err; continue; } throw err; }
+    }
+    throw new Error(`Groq chat failed.\n${lastErr?.message}`);
+  }
+
+  static extractHighlightedForces(text) {
+    const matches = text.match(/\*\*([^*]+)\*\*/g) || [];
+    return matches.map(m => m.replace(/\*\*/g, '').trim());
+  }
+}
+/* ================================================================
+   OPENROUTER VISION ENGINE
+================================================================ */
+const OR_BASE = 'https://openrouter.ai/api/v1/chat/completions';
+const OPENROUTER_MODELS = [
+  { id: 'google/gemma-4-31b-it:free', label: 'Gemma 4 31B (free, recommended)' },
+  { id: 'deepseek/deepseek-v4-flash:free', label: 'DeepSeek V4 Flash (free, fast)' },
+  { id: 'google/gemma-4-26b-a4b-it:free', label: 'Gemma 4 26B (free)' },
+];
+const OPENROUTER_FALLBACK_CHAIN = OPENROUTER_MODELS.map(m => m.id);
+const OPENROUTER_DEFAULT_MODEL  = OPENROUTER_MODELS[0].id;
+
+function isORUnavailable(status) {
+  return status === 404 || status === 400 || status === 429 || status === 408;
+}
+
+class OpenRouterVision {
+  constructor(apiKey, modelId = OPENROUTER_DEFAULT_MODEL) {
+    if (!apiKey) throw new Error('OpenRouter API key is required.');
+    this._apiKey = apiKey.replace(/[^\x20-\x7E]/g, '').trim();
+    this.modelId = modelId;
+  }
+
+  async _post(modelId, body, timeoutMs = 12000) {
+    const controller = new AbortController();
+    const timeout = new Promise((_, reject) => setTimeout(() => {
+      controller.abort();
+      const e = new Error(`${modelId} timed out after ${timeoutMs / 1000}s`); e.status = 408; reject(e);
+    }, timeoutMs));
+    const request = fetch(OR_BASE, {
+      method: 'POST', signal: controller.signal,
+      headers: {
+        'Authorization': `Bearer ${this._apiKey}`,
+        'Content-Type': 'application/json',
+        'HTTP-Referer': window.location.origin,
+        'X-Title': 'Physics Sim',
+      },
+      body: JSON.stringify({ model: modelId, ...body }),
+    }).then(async res => {
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        const msg = err?.error?.message || res.statusText;
+        const e = new Error(`OpenRouter ${res.status}: ${msg}`); e.status = res.status;
+        if (res.status === 401) e.message = `Invalid OpenRouter API key - get one at openrouter.ai/keys\n\n${msg}`;
+        if (res.status === 402) e.message = `OpenRouter account out of credits.\n\n${msg}`;
+        throw e;
+      }
+      return res.json();
+    });
+    return Promise.race([request, timeout]);
+  }
+
+  async testConnection() {
+    const chain = [this.modelId, ...OPENROUTER_FALLBACK_CHAIN.filter(m => m !== this.modelId)];
+    let lastErr;
+    for (const modelId of chain) {
+      try {
+        await this._post(modelId, { messages: [{ role: 'user', content: 'Reply with the single word: OK' }], max_tokens: 5 });
+        return { ok: true, modelId };
+      } catch (err) { if (isORUnavailable(err.status)) { lastErr = err; continue; } throw err; }
+    }
+    throw new Error(`All OpenRouter models failed.\nLast: ${lastErr?.message}`);
+  }
+
+  async analyzeImage(imageBase64, mimeType = 'image/jpeg', onFallback, onPass) {
+    const safeMime = mimeType === 'image/jpg' ? 'image/jpeg' : mimeType;
+    const chain = [this.modelId, ...OPENROUTER_FALLBACK_CHAIN.filter(m => m !== this.modelId)];
+    let lastErr;
+    for (const modelId of chain) {
+      if (onFallback) onFallback(modelId);
+      try {
+        if (onPass) onPass(1, 'Extracting data...');
+        const imageMsg = {
+          role: 'user',
+          content: [
+            { type: 'text', text: ANALYSIS_PROMPT },
+            { type: 'image_url', image_url: { url: `data:${safeMime};base64,${imageBase64}` } },
+          ],
+        };
+        const res1 = await this._post(modelId, { messages: [imageMsg] }, 20000);
+        const raw1 = res1?.choices?.[0]?.message?.content;
+        if (!raw1) { const e = new Error(`${modelId} empty response`); e.status = 400; throw e; }
+        const json1 = extractJson(raw1);
+        if (!json1) { const e = new Error(`${modelId} returned non-JSON`); e.status = 400; throw e; }
+
+        if (onPass) onPass(2, 'Self-checking...');
+        const history2 = [imageMsg, { role: 'assistant', content: raw1 }, { role: 'user', content: CRITIQUE_PROMPT }];
+        let json2 = json1, raw2 = '';
+        try {
+          const res2 = await this._post(modelId, { messages: history2 }, 20000);
+          raw2 = res2?.choices?.[0]?.message?.content || '';
+          json2 = extractJson(raw2) ?? json1;
+        } catch { /* non-fatal */ }
+
+        if (onPass) onPass(3, 'Validating...');
+        let json3 = json2;
+        try {
+          const history3 = [...history2, { role: 'assistant', content: raw2 }, { role: 'user', content: VELOCITY_FINAL_CHECK }];
+          const res3 = await this._post(modelId, { messages: history3 }, 15000);
+          json3 = extractJson(res3?.choices?.[0]?.message?.content || '') ?? json2;
+        } catch { /* non-fatal */ }
+
+        return { data: json3, usedModel: modelId };
+      } catch (err) { if (isORUnavailable(err.status)) { lastErr = err; continue; } throw err; }
+    }
+    throw new Error(`All OpenRouter models failed.\nLast: ${lastErr?.message}`);
+  }
+
+  async chat(userMessage, blueprintSummary, history = []) {
+    const systemMsg = `${TUTOR_SYSTEM}\n\nCurrent simulation:\n${blueprintSummary}`;
+    const messages = [
+      { role: 'system', content: systemMsg },
+      ...history.map(m => ({ role: m.role === 'assistant' ? 'assistant' : 'user', content: m.content })),
+      { role: 'user', content: userMessage },
+    ];
+    const chain = [this.modelId, ...OPENROUTER_FALLBACK_CHAIN.filter(m => m !== this.modelId)];
+    let lastErr;
+    for (const modelId of chain) {
+      try {
+        const data = await this._post(modelId, { messages });
+        const reply = data?.choices?.[0]?.message?.content;
+        if (!reply) { const e = new Error(`${modelId} empty reply`); e.status = 400; throw e; }
+        return reply;
+      } catch (err) { if (isORUnavailable(err.status)) { lastErr = err; continue; } throw err; }
+    }
+    throw new Error(`All OpenRouter models failed.\n${lastErr?.message}`);
+  }
+
+  static extractHighlightedForces(text) {
+    const matches = text.match(/\*\*([^*]+)\*\*/g) || [];
+    return matches.map(m => m.replace(/\*\*/g, '').trim());
+  }
+}
+
+/* ================================================================
+   VISION ENGINE FACTORY
+================================================================ */
+function detectProvider(key) {
+  if (!key) return 'none';
+  if (key.startsWith('gsk_'))   return 'groq';
+  if (key.startsWith('sk-or-')) return 'openrouter';
+  if (key.startsWith('AIza'))   return 'gemini';
+  return 'unknown';
+}
+function defaultModelForProvider(provider) {
+  if (provider === 'groq')       return GROQ_DEFAULT_MODEL;
+  if (provider === 'openrouter') return OPENROUTER_DEFAULT_MODEL;
+  return 'gemini-2.0-flash';
+}
+function modelsForProvider(provider) {
+  if (provider === 'groq')       return GROQ_MODELS;
+  if (provider === 'openrouter') return OPENROUTER_MODELS;
+  return AVAILABLE_MODELS;
+}
+function createVisionEngine(apiKey, modelId) {
+  const provider = detectProvider(apiKey);
+  if (provider === 'groq')       return new GroqVision(apiKey, modelId);
+  if (provider === 'openrouter') return new OpenRouterVision(apiKey, modelId);
+  return new GeminiVision(apiKey, modelId);
+}
+function extractHighlightedForces(text) {
+  return GeminiVision.extractHighlightedForces(text);
+}
+/* ================================================================
+   BLUEPRINT PARSER
+================================================================ */
+const FORCE_COLORS = {
+  gravity:'#4FC3F7', normal:'#66BB6A', friction:'#EF5350',
+  tension:'#FFA726', applied:'#AB47BC', spring:'#26C6DA',
+  buoyancy:'#29B6F6', electric:'#FFD54F', magnetic:'#EC407A', net:'#FFEE58',
+};
+
+const _uid = () => Math.random().toString(36).substr(2, 8);
+
+function _parseObj(raw) {
+  return {
+    id: raw.id || `obj_${_uid()}`, type: raw.type || 'rectangle',
+    label: raw.label || 'object', mass: raw.mass ?? null,
+    position: { x: raw.position?.x ?? 0, y: raw.position?.y ?? 0 },
+    dimensions: { width: raw.dimensions?.width ?? 1, height: raw.dimensions?.height ?? 0.5 },
+    angle: raw.angle ?? 0,
+    initial_velocity: { x: raw.initial_velocity?.x ?? 0, y: raw.initial_velocity?.y ?? 0 },
+    properties: {
+      mu_s: raw.properties?.mu_s ?? null, mu_k: raw.properties?.mu_k ?? null,
+      spring_constant: raw.properties?.spring_constant ?? null,
+      is_fixed: raw.properties?.is_fixed ?? false, restitution: raw.properties?.restitution ?? 0,
+    },
+  };
+}
+
+function _parseSurface(raw) {
+  return {
+    id: raw.id || `surf_${_uid()}`, type: raw.type || 'line',
+    label: raw.label || '',
+    points: Array.isArray(raw.points) && raw.points.length >= 2 ? raw.points : [{ x: -5, y: 0 }, { x: 5, y: 0 }],
+    angle: raw.angle ?? 0, length: raw.length ?? 10,
+    properties: {
+      mu_s: raw.properties?.mu_s ?? 0.3, mu_k: raw.properties?.mu_k ?? 0.25,
+      is_frictionless: raw.properties?.is_frictionless ?? false,
+    },
+  };
+}
+
+function _parseForce(raw, objects) {
+  const colorType = raw.color_type || raw.type || 'applied';
+  return {
+    id: raw.id || `force_${_uid()}`, type: raw.type || 'applied',
+    label: raw.label || 'F', object_id: raw.object_id || (objects[0]?.id ?? null),
+    pivot_point: { x: raw.pivot_point?.x ?? 0, y: raw.pivot_point?.y ?? 0 },
+    magnitude: raw.magnitude ?? null, angle_degrees: raw.angle_degrees ?? 0,
+    vector: { x: raw.vector?.x ?? 0, y: raw.vector?.y ?? 0 },
+    color: FORCE_COLORS[colorType] ?? '#FFFFFF',
+    known: raw.known ?? (raw.magnitude !== null && raw.magnitude !== undefined),
+    pulsing: false,
+  };
+}
+
+function _parseConstraint(raw) {
+  return {
+    id: raw.id || `cst_${_uid()}`, type: raw.type || 'string',
+    object_a: raw.object_a, object_b: raw.object_b,
+    length: raw.length ?? null, stiffness: raw.stiffness ?? null, label: raw.label || 'T',
+  };
+}
+
+function parseBlueprint(raw) {
+  if (!raw || typeof raw !== 'object') throw new Error('Blueprint must be a JSON object');
+  const objects    = (raw.objects    || []).map(_parseObj);
+  const surfaces   = (raw.surfaces   || []).map(_parseSurface);
+  const forces     = (raw.forces     || []).map(r => _parseForce(r, objects));
+  const constraints = (raw.constraints || []).map(_parseConstraint);
+  const baseVels   = raw.initial_conditions?.velocities || {};
+  const velocities = { ...baseVels };
+  objects.forEach(obj => {
+    if (!velocities[obj.id]) {
+      const iv = obj.initial_velocity;
+      if (iv && (Math.abs(iv.x ?? 0) > 0.001 || Math.abs(iv.y ?? 0) > 0.001))
+        velocities[obj.id] = { x: iv.x ?? 0, y: iv.y ?? 0 };
+    }
+  });
+  const problemType = raw.problem_type || 'other';
+  let missing = Array.isArray(raw.missing_data) ? raw.missing_data : [];
+  if (problemType === 'projectile') {
+    objects.forEach(obj => {
+      if (obj.mass === null) obj.mass = 1;
+      const iv = obj.initial_velocity;
+      if (obj.position.y < 0.5 && iv && iv.y > 0.5) obj.position.y = 0.5;
+    });
+    missing = missing.filter(d => !d.toLowerCase().includes('.mass'));
+  }
+  const MAX_C = 200;
+  objects.forEach(obj => {
+    obj.position.x = Math.max(-MAX_C, Math.min(MAX_C, obj.position.x || 0));
+    obj.position.y = Math.max(-0.5,   Math.min(MAX_C, obj.position.y || 0));
+    const iv = obj.initial_velocity;
+    if (iv) { iv.x = Math.max(-300, Math.min(300, iv.x ?? 0)); iv.y = Math.max(-300, Math.min(300, iv.y ?? 0)); }
+  });
+  surfaces.forEach(surf => {
+    surf.points = surf.points.map(p => ({
+      x: Math.max(-MAX_C, Math.min(MAX_C, p.x || 0)),
+      y: Math.max(-2,     Math.min(MAX_C, p.y || 0)),
+    }));
+  });
+  const walls = surfaces.filter(s => {
+    const p1 = s.points[0], p2 = s.points[s.points.length - 1];
+    const dx = p2.x - p1.x, dy = p2.y - p1.y;
+    return s.type === 'wall' || Math.abs(Math.sin(Math.atan2(dy, dx))) > 0.85;
+  });
+  const HALF_WALL = 1.25;
+  objects.forEach(obj => {
+    const hw = (obj.dimensions.width ?? 0.8) / 2;
+    walls.forEach(wall => {
+      const wx = (wall.points[0].x + wall.points[wall.points.length - 1].x) / 2;
+      if (Math.abs(obj.position.x - wx) < HALF_WALL + hw) {
+        const side = obj.position.x >= wx ? 1 : -1;
+        obj.position.x = wx + side * (HALF_WALL + hw + 0.15);
+      }
+    });
+  });
+  for (let i = 0; i < objects.length; i++) {
+    for (let j = i + 1; j < objects.length; j++) {
+      const a = objects[i], b = objects[j];
+      if (Math.abs(a.position.x - b.position.x) < 0.6 && Math.abs(a.position.y - b.position.y) < 0.6)
+        b.position.x = a.position.x + 2.5;
+    }
+  }
+  return {
+    problem_type: problemType, description: raw.description || '',
+    coordinate_system: raw.coordinate_system || { origin: { x: 0, y: 0 } },
+    environment: { g: 9.8, medium: 'air', ...(raw.environment || {}) },
+    objects, surfaces, forces, constraints,
+    initial_conditions: { t0: 0, velocities },
+    missing_data: missing,
+    known_results: raw.known_results || null,
+    known_values: raw.known_values || {},
+  };
+}
+
+function autoComputeForces(bp) {
+  const { objects, surfaces, environment, forces, problem_type, constraints } = bp;
+  const g = environment.g;
+  const result = [...forces];
+  const has = (type, objId) => result.some(f => f.type === type && f.object_id === objId);
+  const isProjectile = problem_type === 'projectile';
+  const isPulley     = problem_type === 'pulley';
+  const hangingIds   = new Set(isPulley ? (constraints || []).filter(c => c.type === 'string').map(c => c.object_b) : []);
+
+  objects.forEach(obj => {
+    if (obj.mass === null || obj.properties.is_fixed) return;
+    const px = obj.position.x, py = obj.position.y;
+    const m = obj.mass, weight = m * g;
+    if (!has('gravity', obj.id)) {
+      result.push({ id: `auto_gravity_${obj.id}`, type: 'gravity', label: 'mg', object_id: obj.id,
+        pivot_point: { x: px, y: py }, magnitude: weight, angle_degrees: 270,
+        vector: { x: 0, y: -weight }, color: FORCE_COLORS.gravity, known: true, pulsing: false });
+    }
+    if (isProjectile) return;
+    if (hangingIds.has(obj.id)) return;
+    const restingSurfaces = surfaces.filter(surf => {
+      if (surf.type === 'floor') return py < 0.5;
+      if (surf.type === 'wall')  return false;
+      const p1 = surf.points[0], p2 = surf.points[surf.points.length - 1];
+      const dx = p2.x - p1.x, dy = p2.y - p1.y;
+      const len = Math.sqrt(dx * dx + dy * dy);
+      if (len < 0.01) return false;
+      const dist = Math.abs((dy * px - dx * py + p2.x * p1.y - p2.y * p1.x) / len);
+      return dist < 1.5;
+    });
+    restingSurfaces.forEach(surf => {
+      const rad = (surf.angle * Math.PI) / 180;
+      const normalMag = weight * Math.cos(rad);
+      if (!has('normal', obj.id)) {
+        result.push({ id: `auto_normal_${obj.id}_${surf.id}`, type: 'normal', label: 'N', object_id: obj.id,
+          pivot_point: { x: px, y: py }, magnitude: normalMag, angle_degrees: surf.angle + 90,
+          vector: { x: -normalMag * Math.sin(rad), y: normalMag * Math.cos(rad) },
+          color: FORCE_COLORS.normal, known: true, pulsing: false });
+      }
+      const mu_k = surf.properties.mu_k;
+      if (mu_k > 0 && !has('friction', obj.id)) {
+        const frictionMag = mu_k * normalMag;
+        result.push({ id: `auto_friction_${obj.id}_${surf.id}`, type: 'friction', label: 'f', object_id: obj.id,
+          pivot_point: { x: px, y: py }, magnitude: frictionMag, angle_degrees: surf.angle,
+          vector: { x: frictionMag * Math.cos(rad), y: frictionMag * Math.sin(rad) },
+          color: FORCE_COLORS.friction, known: true, pulsing: false });
+      }
+    });
+  });
+  if (isPulley) {
+    (constraints || []).forEach(c => {
+      if (c.type !== 'string') return;
+      const objA = objects.find(o => o.id === c.object_a);
+      const objB = objects.find(o => o.id === c.object_b);
+      if (!objA || !objB || objA.mass === null || objB.mass === null) return;
+      const T = (objA.mass * objB.mass * g) / (objA.mass + objB.mass);
+      if (!has('tension', c.object_a)) {
+        result.push({ id: `auto_tension_${c.object_a}`, type: 'tension', label: c.label || 'T', object_id: c.object_a,
+          pivot_point: { x: objA.position.x, y: objA.position.y }, magnitude: T, angle_degrees: 0,
+          vector: { x: T, y: 0 }, color: FORCE_COLORS.tension, known: false, pulsing: false });
+      }
+      if (!has('tension', c.object_b)) {
+        result.push({ id: `auto_tension_${c.object_b}`, type: 'tension', label: c.label || 'T', object_id: c.object_b,
+          pivot_point: { x: objB.position.x, y: objB.position.y }, magnitude: T, angle_degrees: 90,
+          vector: { x: 0, y: T }, color: FORCE_COLORS.tension, known: false, pulsing: false });
+      }
+    });
+  }
+  return { ...bp, forces: result };
+}
+/* ================================================================
+   PHYSICS ENGINE 3D (Cannon-es)
+================================================================ */
+class PhysicsEngine3D {
+  constructor() { this.world = null; this.bodies = {}; this.blueprint = null; this._extraForces = {}; this._materials = {}; }
+
+  init(blueprint) {
+    this.blueprint = blueprint; this.bodies = {}; this._extraForces = {}; this._materials = {};
+    this.world = new CANNON.World({ gravity: new CANNON.Vec3(0, -blueprint.environment.g, 0) });
+    this.world.broadphase = new CANNON.SAPBroadphase(this.world);
+    this.world.allowSleep = false;
+    const def = new CANNON.Material('default');
+    this._defaultMat = def;
+    const defContact = new CANNON.ContactMaterial(def, def, { friction: 0.3, restitution: 0 });
+    this.world.addContactMaterial(defContact);
+    this.world.defaultContactMaterial = defContact;
+    blueprint.surfaces.forEach(s => this._addSurface(s));
+    blueprint.objects.forEach(o => this._addObject(o));
+    const objEntries  = Object.entries(this._materials).filter(([id]) =>  this.bodies[id]);
+    const surfEntries = Object.entries(this._materials).filter(([id]) => !this.bodies[id]);
+    objEntries.forEach(([oid, om]) => {
+      surfEntries.forEach(([, sm]) => {
+        const cm = new CANNON.ContactMaterial(om.mat, sm.mat, {
+          friction: Math.sqrt(om.mu_k * sm.mu_k), restitution: om.restitution ?? 0,
+        });
+        this.world.addContactMaterial(cm);
+      });
+    });
+    const vels = blueprint.initial_conditions?.velocities || {};
+    Object.entries(vels).forEach(([id, v]) => { const b = this.bodies[id]; if (b) b.velocity.set(v.x, v.y, 0); });
+    this._pulleyState = null;
+    if (blueprint.problem_type === 'pulley') {
+      const rope = blueprint.constraints?.find(c => c.type === 'string');
+      if (rope) {
+        const bA = this.bodies[rope.object_a], bB = this.bodies[rope.object_b];
+        const objA = blueprint.objects.find(o => o.id === rope.object_a);
+        const objB = blueprint.objects.find(o => o.id === rope.object_b);
+        if (bA && bB && objA && objB) {
+          const aIsTable = objA.position.y >= objB.position.y;
+          const tableBody = aIsTable ? bA : bB, hangBody = aIsTable ? bB : bA;
+          const tableObj  = aIsTable ? objA : objB, hangObj = aIsTable ? objB : objA;
+          const tableSurf = blueprint.surfaces.find(s => s.type === 'line');
+          const mu_k = tableSurf?.properties?.mu_k ?? 0;
+          tableBody.type = CANNON.Body.KINEMATIC;
+          hangBody.type  = CANNON.Body.KINEMATIC;
+          this._pulleyState = {
+            tableBody, hangBody, mTable: tableObj.mass ?? 1, mHang: hangObj.mass ?? 1,
+            tableY: tableObj.position.y, hangX: hangObj.position.x, v: 0, mu_k, done: false,
+          };
+        }
+      }
+    }
+  }
+
+  _mat(props) {
+    const mat = new CANNON.Material();
+    return { mat, mu_k: props.mu_k ?? 0.2, mu_s: props.mu_s ?? 0.25, restitution: props.restitution ?? 0 };
+  }
+
+  _addSurface(surf) {
+    if (!surf.points || surf.points.length < 2) return;
+    const entry = this._mat(surf.properties || {});
+    this._materials[surf.id] = entry;
+    const p1 = surf.points[0], p2 = surf.points[surf.points.length - 1];
+    if (surf.type === 'floor') {
+      const body = new CANNON.Body({ mass: 0, material: entry.mat });
+      body.addShape(new CANNON.Plane());
+      body.quaternion.setFromEuler(-Math.PI / 2, 0, 0);
+      body.position.set(0, p1.y, 0);
+      this.world.addBody(body); return;
+    }
+    const cx = (p1.x + p2.x) / 2, cy = (p1.y + p2.y) / 2;
+    const dx = p2.x - p1.x, dy = p2.y - p1.y;
+    const len = Math.max(Math.sqrt(dx * dx + dy * dy), 1);
+    const angle = Math.atan2(dy, dx);
+    const isVertical = surf.type === 'wall' || Math.abs(Math.sin(angle)) > 0.85;
+    const body = new CANNON.Body({ mass: 0, material: entry.mat });
+    if (isVertical) {
+      body.addShape(new CANNON.Box(new CANNON.Vec3(0.45, len / 2, 3)));
+      body.position.set(cx, cy, 0);
+    } else {
+      body.addShape(new CANNON.Box(new CANNON.Vec3(len / 2, 0.06, 3)));
+      body.position.set(cx, cy, 0);
+      body.quaternion.setFromEuler(0, 0, angle);
+    }
+    this.world.addBody(body);
+  }
+
+  _addObject(obj) {
+    const entry = this._mat({ ...obj.properties, restitution: obj.properties?.restitution ?? 0 });
+    this._materials[obj.id] = entry;
+    const isFixed  = obj.properties?.is_fixed ?? false;
+    const mass     = isFixed ? 0 : Math.max(obj.mass ?? 1, 0.001);
+    const isCircle = obj.type === 'circle' || obj.type === 'pulley' || obj.type === 'point_mass';
+    let shape;
+    if (isCircle) {
+      const r = Math.max((Math.max(obj.dimensions?.width ?? 0.6, obj.dimensions?.height ?? 0.6)) / 2, 0.15);
+      shape = new CANNON.Sphere(r);
+    } else {
+      const hw = Math.max((obj.dimensions?.width  ?? 0.8) / 2, 0.15);
+      const hh = Math.max((obj.dimensions?.height ?? 0.5) / 2, 0.15);
+      shape = new CANNON.Box(new CANNON.Vec3(hw, hh, 0.25));
+    }
+    const body = new CANNON.Body({ mass, material: entry.mat, linearDamping: 0, angularDamping: 0.1 });
+    body.addShape(shape);
+    body.position.set(obj.position.x, obj.position.y, 0);
+    const rad = (obj.angle * Math.PI) / 180;
+    body.quaternion.setFromEuler(0, 0, -rad);
+    const iv = obj.initial_velocity;
+    if (iv && (Math.abs(iv.x ?? 0) > 0.001 || Math.abs(iv.y ?? 0) > 0.001))
+      body.velocity.set(iv.x ?? 0, iv.y ?? 0, 0);
+    this.world.addBody(body);
+    this.bodies[obj.id] = body;
+  }
+
+  applyExtraForce(objectId, fx, fy) { this._extraForces[objectId] = { x: fx, y: fy }; }
+  clearExtraForces() { this._extraForces = {}; }
+
+  step(dtSeconds) {
+    if (this._pulleyState && !this._pulleyState.done) {
+      const ps = this._pulleyState;
+      const g  = Math.abs(this.world.gravity.y);
+      const netF = ps.mHang * g - ps.mu_k * ps.mTable * g;
+      const a    = netF > 0 ? netF / (ps.mTable + ps.mHang) : 0;
+      ps.v += a * dtSeconds;
+      ps.tableBody.velocity.set(ps.v, 0, 0);
+      ps.tableBody.angularVelocity.set(0, 0, 0);
+      ps.tableBody.position.y = ps.tableY;
+      ps.hangBody.velocity.set(0, -ps.v, 0);
+      ps.hangBody.angularVelocity.set(0, 0, 0);
+      ps.hangBody.position.x = ps.hangX;
+      if (ps.hangBody.position.y <= 0.3) {
+        ps.hangBody.position.y = 0.3;
+        ps.tableBody.velocity.set(0, 0, 0); ps.hangBody.velocity.set(0, 0, 0);
+        ps.v = 0; ps.done = true;
+      }
+    }
+    Object.entries(this._extraForces).forEach(([id, f]) => {
+      const b = this.bodies[id];
+      if (b && b.mass > 0) b.applyForce(new CANNON.Vec3(f.x, f.y, 0));
+    });
+    this.world.step(dtSeconds);
+  }
+
+  getState() {
+    const out = {};
+    Object.entries(this.bodies).forEach(([id, b]) => {
+      const { x: qx, y: qy, z: qz, w: qw } = b.quaternion;
+      const sinz = 2 * (qw * qz + qx * qy);
+      const cosz = 1 - 2 * (qy * qy + qz * qz);
+      out[id] = {
+        position:   { x: b.position.x,   y: b.position.y,   z: b.position.z },
+        velocity:   { x: b.velocity.x,   y: b.velocity.y,   z: b.velocity.z },
+        quaternion: { x: qx, y: qy, z: qz, w: qw },
+        angle: (-Math.atan2(sinz, cosz) * 180) / Math.PI,
+        speed: b.velocity.length(),
+      };
+    });
+    return out;
+  }
+
+  reset()   { if (this.blueprint) this.init(this.blueprint); }
+  destroy() { this.world = null; }
+}
+/* ================================================================
+   GLOBAL STORE (Zustand)
+================================================================ */
+const useStore = create((set, get) => ({
+  geminiApiKey: '',
+  selectedModelId: (typeof localStorage !== 'undefined' && localStorage.getItem('gemini_model')) || 'gemini-2.0-flash',
+  setApiKey: (key) => { localStorage.setItem('gemini_api_key', key); set({ geminiApiKey: key }); },
+  setSelectedModelId: (id) => { localStorage.setItem('gemini_model', id); set({ selectedModelId: id }); },
+  uploadedImage: null, blueprint: null, analysisStatus: 'idle', analysisError: null, missingData: [],
+  setUploadedImage:  (img) => set({ uploadedImage: img }),
+  setAnalysisStatus: (s, err = null) => set({ analysisStatus: s, analysisError: err }),
+  setBlueprint: (bp) => set({ blueprint: bp, missingData: bp.missing_data || [], analysisStatus: 'done', simState: 'idle', simTime: 0, objectStates: {}, trajectories: {} }),
+  fillMissingField: (path, value) => {
+    const { blueprint, missingData } = get();
+    if (!blueprint) return;
+    const updated = JSON.parse(JSON.stringify(blueprint));
+    const parts = path.split(/[\.\[\]]+/).filter(Boolean);
+    let node = updated;
+    for (let i = 0; i < parts.length - 1; i++) { node = node[parts[i]]; if (!node) return; }
+    node[parts[parts.length - 1]] = isNaN(value) ? value : Number(value);
+    set({ blueprint: updated, missingData: missingData.filter(d => !d.startsWith(path)) });
+  },
+  simState: 'idle', simTime: 0, timeScale: 1.0, objectStates: {}, trajectories: {},
+  setSimState:  (s) => set({ simState: s }),
+  setTimeScale: (t) => set({ timeScale: t }),
+  tickObjectStates: (states) => set(prev => {
+    const trajectories = { ...prev.trajectories };
+    Object.entries(states).forEach(([id, s]) => {
+      const existing = trajectories[id] || [];
+      const last = existing[existing.length - 1];
+      const pos = s.position;
+      if (!last || Math.hypot(pos.x - last.x, pos.y - last.y) > 0.02)
+        trajectories[id] = [...existing.slice(-800), { x: pos.x, y: pos.y, z: pos.z ?? 0 }];
+    });
+    return { objectStates: states, trajectories };
+  }),
+  addSimTime: (dt) => set(prev => ({ simTime: prev.simTime + dt })),
+  resetSim: () => set({ simState: 'idle', simTime: 0, objectStates: {}, trajectories: {} }),
+  showComponents: false, showGrid: true, showLabels: true, showTrajectory: true,
+  teacherMode: false, highlightedForces: [],
+  toggleComponents:  () => set(s => ({ showComponents: !s.showComponents })),
+  toggleGrid:        () => set(s => ({ showGrid:       !s.showGrid       })),
+  toggleLabels:      () => set(s => ({ showLabels:     !s.showLabels     })),
+  toggleTrajectory:  () => set(s => ({ showTrajectory: !s.showTrajectory })),
+  toggleTeacherMode: () => set(s => ({ teacherMode:    !s.teacherMode    })),
+  setHighlightedForces: (labels) => set({ highlightedForces: labels }),
+  viewScale: 80, panX: 0, panY: 0,
+  setCamera: (scale, px, py) => set({ viewScale: scale, panX: px, panY: py }),
+  tutorHistory: [], tutorLoading: false,
+  addTutorMsg: (role, content) => set(s => ({ tutorHistory: [...s.tutorHistory, { role, content, id: Date.now() }] })),
+  setTutorLoading: (v) => set({ tutorLoading: v }),
+  forceOverrides: {},
+  setForceOverride: (id, magnitude, angle) => set(s => ({ forceOverrides: { ...s.forceOverrides, [id]: { magnitude, angle_degrees: angle } } })),
+  clearForceOverrides: () => set({ forceOverrides: {} }),
+}));
+
+/* ================================================================
+   SIMULATION CONTEXT & HOOK
+================================================================ */
+const SimulationContext = createContext(null);
+function useSimulationContext() { return useContext(SimulationContext); }
+
+function useSimulation() {
+  const engineRef  = useRef(null);
+  const rafRef     = useRef(null);
+  const lastTsRef  = useRef(null);
+  const stateRef   = useRef('idle');
+  const blueprint        = useStore(s => s.blueprint);
+  const simState         = useStore(s => s.simState);
+  const timeScale        = useStore(s => s.timeScale);
+  const forceOverrides   = useStore(s => s.forceOverrides);
+  const setSimState      = useStore(s => s.setSimState);
+  const tickObjectStates = useStore(s => s.tickObjectStates);
+  const addSimTime       = useStore(s => s.addSimTime);
+  useEffect(() => { stateRef.current = simState; }, [simState]);
+  useEffect(() => {
+    if (!blueprint) return;
+    if (!engineRef.current) engineRef.current = new PhysicsEngine3D();
+    engineRef.current.init(blueprint);
+    lastTsRef.current = null;
+  }, [blueprint]);
+  const loop = useCallback((ts) => {
+    if (stateRef.current !== 'running') return;
+    if (lastTsRef.current === null) lastTsRef.current = ts;
+    const rawDt = Math.min((ts - lastTsRef.current) / 1000, 0.05);
+    lastTsRef.current = ts;
+    const physDt = rawDt * timeScale;
+    if (physDt > 0.0001 && engineRef.current) {
+      engineRef.current.clearExtraForces();
+      if (blueprint) {
+        Object.entries(forceOverrides).forEach(([forceId, override]) => {
+          const force = blueprint.forces.find(f => f.id === forceId);
+          if (!force) return;
+          const rad = (override.angle_degrees * Math.PI) / 180;
+          engineRef.current.applyExtraForce(force.object_id, Math.cos(rad) * override.magnitude, Math.sin(rad) * override.magnitude);
+        });
+      }
+      engineRef.current.step(physDt);
+      tickObjectStates(engineRef.current.getState());
+      addSimTime(physDt);
+    }
+    rafRef.current = requestAnimationFrame(loop);
+  }, [timeScale, forceOverrides, blueprint, tickObjectStates, addSimTime]);
+  useEffect(() => {
+    if (simState === 'running') { lastTsRef.current = null; rafRef.current = requestAnimationFrame(loop); }
+    else { if (rafRef.current) cancelAnimationFrame(rafRef.current); }
+    return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); };
+  }, [simState, loop]);
+  const play      = useCallback(() => { if (!engineRef.current || !blueprint) return; setSimState('running'); }, [blueprint, setSimState]);
+  const pause     = useCallback(() => setSimState('paused'), [setSimState]);
+  const reset     = useCallback(() => {
+    if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    useStore.getState().resetSim();
+    engineRef.current?.reset();
+    lastTsRef.current = null;
+  }, []);
+  const stepFrame = useCallback(() => {
+    if (simState === 'running' || !engineRef.current || !blueprint) return;
+    const dt = 1 / 60;
+    engineRef.current.step(dt * timeScale);
+    tickObjectStates(engineRef.current.getState());
+    addSimTime(dt * timeScale);
+  }, [simState, blueprint, timeScale, tickObjectStates, addSimTime]);
+  return { play, pause, reset, stepFrame, engine: engineRef.current };
+}
+/* ================================================================
+   MODAL & CONTROLS
+================================================================ */
+function inferType(path) {
+  const p = path.toLowerCase();
+  if (p.includes('mass'))     return { type:'number', unit:'kg',    placeholder:'e.g. 5.0',  min:0 };
+  if (p.includes('mu_s'))     return { type:'number', unit:'',      placeholder:'e.g. 0.3',  min:0, max:1 };
+  if (p.includes('mu_k'))     return { type:'number', unit:'',      placeholder:'e.g. 0.2',  min:0, max:1 };
+  if (p.includes('angle'))    return { type:'number', unit:'deg',   placeholder:'e.g. 30',   min:0, max:90 };
+  if (p.includes('velocity')) return { type:'number', unit:'m/s',   placeholder:'e.g. 0',    min:-1000 };
+  if (p.includes('g'))        return { type:'number', unit:'m/s2',  placeholder:'e.g. 9.8',  min:0 };
+  if (p.includes('length'))   return { type:'number', unit:'m',     placeholder:'e.g. 2.0',  min:0 };
+  return { type:'number', unit:'', placeholder:'value', min:undefined };
+}
+
+function MissingDataModal() {
+  const missingData     = useStore(s => s.missingData);
+  const fillMissingField = useStore(s => s.fillMissingField);
+  const [values, setValues] = useState({});
+  if (!missingData || missingData.length === 0) return null;
+  const handleChange = (path, val) => setValues(prev => ({ ...prev, [path]: val }));
+  const handleFill   = (rawEntry) => {
+    const colonIdx = rawEntry.indexOf(':');
+    const path = colonIdx >= 0 ? rawEntry.substring(0, colonIdx).trim() : rawEntry.trim();
+    const val  = values[path];
+    if (val === undefined || val === '') return;
+    fillMissingField(path, val);
+    setValues(prev => { const n = { ...prev }; delete n[path]; return n; });
+  };
+  const handleSkip = (rawEntry) => {
+    const colonIdx = rawEntry.indexOf(':');
+    const path = colonIdx >= 0 ? rawEntry.substring(0, colonIdx).trim() : rawEntry.trim();
+    fillMissingField(path, 0);
+  };
+  return (
+    <div className="modal-overlay">
+      <div className="modal">
+        <div className="modal-header">
+          <span>Missing Simulation Data</span>
+          <span style={{ fontSize:12, color:'#8888aa' }}>Fill in the values before starting</span>
+        </div>
+        <div className="modal-body">
+          {missingData.map((entry) => {
+            const colonIdx = entry.indexOf(':');
+            const path = colonIdx >= 0 ? entry.substring(0, colonIdx).trim() : entry.trim();
+            const desc = colonIdx >= 0 ? entry.substring(colonIdx + 1).trim() : entry.trim();
+            const meta = inferType(path);
+            return (
+              <div key={path} className="missing-field">
+                <div className="field-desc">{desc || path}</div>
+                <div className="field-path">{path}</div>
+                <div style={{ display:'flex', gap:6, marginTop:6 }}>
+                  <div style={{ position:'relative', flex:1 }}>
+                    <input type={meta.type} min={meta.min} max={meta.max} placeholder={meta.placeholder}
+                      className="input-field" style={{ width:'100%', paddingRight: meta.unit ? 36 : 8 }}
+                      value={values[path] ?? ''} onChange={e => handleChange(path, e.target.value)}
+                      onKeyDown={e => e.key === 'Enter' && handleFill(entry)} />
+                    {meta.unit && <span style={{ position:'absolute', right:8, top:'50%', transform:'translateY(-50%)', color:'#8888aa', fontSize:12, pointerEvents:'none' }}>{meta.unit}</span>}
+                  </div>
+                  <button className="btn-primary" onClick={() => handleFill(entry)} disabled={!values[path]}>Set</button>
+                  <button className="btn-secondary" onClick={() => handleSkip(entry)}>Skip</button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        <div className="modal-footer">
+          <span style={{ fontSize:11, color:'#8888aa' }}>Skipped fields default to 0 - simulation may be inaccurate.</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const TIMESCALES = [{ label:'0.1x', val:0.1 },{ label:'0.25x', val:0.25 },{ label:'0.5x', val:0.5 },{ label:'1x', val:1 },{ label:'2x', val:2 }];
+
+function TimeControls() {
+  const blueprint   = useStore(s => s.blueprint);
+  const simState    = useStore(s => s.simState);
+  const timeScale   = useStore(s => s.timeScale);
+  const setTimeScale = useStore(s => s.setTimeScale);
+  const missingData = useStore(s => s.missingData);
+  const { play, pause, reset, stepFrame } = useSimulationContext();
+  const canRun = !!blueprint && missingData.length === 0;
+  return (
+    <div className="time-controls">
+      <div className="ctrl-group">
+        <button className="ctrl-btn" onClick={reset} disabled={!blueprint} title="Reset (R)">&#9198;</button>
+        <button className={`ctrl-btn ${simState === 'running' ? 'active' : ''}`}
+          onClick={simState === 'running' ? pause : play} disabled={!canRun}
+          title={simState === 'running' ? 'Pause' : 'Play'}>
+          {simState === 'running' ? '&#9646;&#9646;' : '&#9654;'}
+        </button>
+        <button className="ctrl-btn" onClick={stepFrame} disabled={simState === 'running' || !blueprint} title="Step (Arrow right)">&#9197;</button>
+      </div>
+      <div className="ctrl-group" style={{ gap:2 }}>
+        {TIMESCALES.map(ts => (
+          <button key={ts.val} className={`timescale-btn ${timeScale === ts.val ? 'active' : ''}`}
+            onClick={() => setTimeScale(ts.val)}>{ts.label}</button>
+        ))}
+      </div>
+      {blueprint && missingData.length > 0 && <div className="missing-warning">&#9888; {missingData.length} missing value(s)</div>}
+    </div>
+  );
+}
+
+function ToggleBtn({ label, active, onClick }) {
+  return <button className={`toggle-btn ${active ? 'active' : ''}`} onClick={onClick}>{active ? 'on' : 'o'} {label}</button>;
+}
+
+function ForceLegend({ forces }) {
+  const seen = new Set();
+  const unique = forces.filter(f => { if (seen.has(f.type)) return false; seen.add(f.type); return true; });
+  return (
+    <div className="force-legend">
+      {unique.map(f => (
+        <div key={f.type} className="legend-item">
+          <span style={{ display:'inline-block', width:14, height:3, background:f.color, borderRadius:2, verticalAlign:'middle', marginRight:4 }} />
+          <span style={{ textTransform:'capitalize' }}>{f.type}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function VectorControls() {
+  const showComponents  = useStore(s => s.showComponents);
+  const showGrid        = useStore(s => s.showGrid);
+  const showLabels      = useStore(s => s.showLabels);
+  const showTrajectory  = useStore(s => s.showTrajectory);
+  const teacherMode     = useStore(s => s.teacherMode);
+  const blueprint       = useStore(s => s.blueprint);
+  const clearForceOverrides = useStore(s => s.clearForceOverrides);
+  const toggleComponents  = useStore(s => s.toggleComponents);
+  const toggleGrid        = useStore(s => s.toggleGrid);
+  const toggleLabels      = useStore(s => s.toggleLabels);
+  const toggleTrajectory  = useStore(s => s.toggleTrajectory);
+  const toggleTeacherMode = useStore(s => s.toggleTeacherMode);
+  const handleTeacherToggle = () => { if (teacherMode) clearForceOverrides(); toggleTeacherMode(); };
+  return (
+    <div className="vector-controls">
+      <ToggleBtn label="Grid"       active={showGrid}       onClick={toggleGrid} />
+      <ToggleBtn label="Labels"     active={showLabels}     onClick={toggleLabels} />
+      <ToggleBtn label="Trajectory" active={showTrajectory} onClick={toggleTrajectory} />
+      <ToggleBtn label="Fx Fy"      active={showComponents} onClick={toggleComponents} />
+      <div style={{ width:1, background:'#2a2a4a', alignSelf:'stretch' }} />
+      <button className={`ctrl-btn ${teacherMode ? 'active teacher' : ''}`}
+        onClick={handleTeacherToggle} disabled={!blueprint} title="Teacher Mode">
+        &#9999; Teacher
+      </button>
+      {blueprint && <ForceLegend forces={blueprint.forces} />}
+    </div>
+  );
+}
+/* ================================================================
+   SCENE 3D — 3D rendering components
+================================================================ */
+const SCENE_FORCE_COLORS = {
+  gravity:'#ef5350', normal:'#42a5f5', friction:'#ff9800',
+  tension:'#ab47bc', applied:'#66bb6a', spring:'#26c6da',
+  buoyancy:'#80deea', net:'#ffee58',
+};
+const OBJ_COLORS_3D = ['#4fc3f7','#ff7043','#66bb6a','#ab47bc','#ffd740','#26c6da'];
+const DEPTH = 0.7, MIN_R = 0.42;
+
+function Arrow({ dir, len, color, label, z = 0.15, thick = 0.045 }) {
+  if (len < 0.08) return null;
+  const sl = len * 0.74, hl = len * 0.26;
+  const cos = Math.cos(dir), sin = Math.sin(dir);
+  const rot = dir - Math.PI / 2;
+  return (
+    <group>
+      <mesh position={[cos * sl / 2, sin * sl / 2, z]} rotation={[0, 0, rot]}>
+        <cylinderGeometry args={[thick, thick, sl, 8]} />
+        <meshStandardMaterial color={color} emissive={color} emissiveIntensity={1.1} />
+      </mesh>
+      <mesh position={[cos * (sl + hl / 2), sin * (sl + hl / 2), z]} rotation={[0, 0, rot]}>
+        <coneGeometry args={[thick * 2.5, hl, 8]} />
+        <meshStandardMaterial color={color} emissive={color} emissiveIntensity={1.1} />
+      </mesh>
+      {label && (
+        <Text position={[cos * (len + 0.42), sin * (len + 0.42), z + 0.06]}
+          fontSize={0.26} color={color} anchorX="center" anchorY="middle"
+          outlineWidth={0.038} outlineColor="#000014">{label}</Text>
+      )}
+    </group>
+  );
+}
+
+const ForceArrow = memo(function ForceArrow({ force, maxMag }) {
+  const mag = force.magnitude ?? 0;
+  if (mag < 0.001) return null;
+  const color = force.color || SCENE_FORCE_COLORS[force.type] || '#ffffff';
+  const len   = Math.max(0.65, Math.min(4.2, (mag / maxMag) * 3.6));
+  const rad   = (force.angle_degrees * Math.PI) / 180;
+  return <Arrow dir={rad} len={len} color={color} label={force.label} />;
+});
+
+const InitialVelocityArrow = memo(function InitialVelocityArrow({ obj }) {
+  const vel = obj.initial_velocity;
+  if (!vel) return null;
+  const speed = Math.sqrt((vel.x ?? 0) ** 2 + (vel.y ?? 0) ** 2);
+  if (speed < 0.05) return null;
+  const rad = Math.atan2(vel.y ?? 0, vel.x ?? 0);
+  const len = Math.max(1.4, Math.min(speed * 0.11, 6.0));
+  return <Arrow dir={rad} len={len} color="#ffd740" label={`v0=${speed.toFixed(0)}m/s`} z={0.26} thick={0.055} />;
+});
+
+function VelocityArrow({ objId }) {
+  const groupRef = useRef(), shaftRef = useRef(), headRef = useRef();
+  useFrame(() => {
+    const state = useStore.getState().objectStates[objId];
+    if (!groupRef.current) return;
+    if (!state || state.speed < 0.25) { groupRef.current.visible = false; return; }
+    groupRef.current.visible = true;
+    const speed = state.speed;
+    const vx = state.velocity.x / speed, vy = state.velocity.y / speed;
+    const len = Math.min(speed * 0.17, 6.5);
+    const rot = Math.atan2(vy, vx) - Math.PI / 2;
+    if (shaftRef.current) { const sl = len * 0.74; shaftRef.current.position.set(vx * sl / 2, vy * sl / 2, 0.26); shaftRef.current.rotation.z = rot; shaftRef.current.scale.y = sl; }
+    if (headRef.current)  { const sl = len * 0.74, hl = len * 0.26; headRef.current.position.set(vx * (sl + hl / 2), vy * (sl + hl / 2), 0.26); headRef.current.rotation.z = rot; headRef.current.scale.y = hl; }
+  });
+  return (
+    <group ref={groupRef} visible={false}>
+      <mesh ref={shaftRef}><cylinderGeometry args={[0.052, 0.052, 1, 7]} /><meshStandardMaterial color="#ffd740" emissive="#ffd740" emissiveIntensity={1.0} /></mesh>
+      <mesh ref={headRef}><coneGeometry args={[0.13, 1, 7]} /><meshStandardMaterial color="#ffd740" emissive="#ffd740" emissiveIntensity={1.0} /></mesh>
+    </group>
+  );
+}
+
+const MAX_TRAJ = 1200;
+function Trajectory({ objId, color }) {
+  const geometry = useMemo(() => {
+    const geo = new THREE.BufferGeometry();
+    const arr = new Float32Array(MAX_TRAJ * 3);
+    geo.setAttribute('position', new THREE.BufferAttribute(arr, 3));
+    geo.setDrawRange(0, 0);
+    return geo;
+  }, []);
+  useEffect(() => () => geometry.dispose(), [geometry]);
+  useFrame(() => {
+    const traj = useStore.getState().trajectories[objId];
+    if (!traj || traj.length < 2) { geometry.setDrawRange(0, 0); return; }
+    const count = Math.min(traj.length, MAX_TRAJ);
+    const arr = geometry.attributes.position.array;
+    for (let i = 0; i < count; i++) { arr[i*3]=traj[i].x; arr[i*3+1]=traj[i].y; arr[i*3+2]=0.02; }
+    geometry.attributes.position.needsUpdate = true;
+    geometry.setDrawRange(0, count);
+  });
+  return <line><primitive object={geometry} attach="geometry" /><lineBasicMaterial color={color} transparent opacity={0.9} /></line>;
+}
+
+function HeightIndicator({ x, y, color }) {
+  if (y < 1.5) return null;
+  const segs = Math.max(3, Math.floor(y / 1.2));
+  const segH = y / segs;
+  return (
+    <group>
+      {Array.from({ length: segs }).map((_, i) => i % 2 !== 0 ? null : (
+        <mesh key={i} position={[x + 0.08, (i + 0.5) * segH, 0.06]}>
+          <boxGeometry args={[0.05, segH * 0.42, 0.05]} />
+          <meshBasicMaterial color={color} transparent opacity={0.55} />
+        </mesh>
+      ))}
+      <Text position={[x + 0.35, y / 2, 0.12]} fontSize={0.24} color={color}
+        anchorX="left" anchorY="middle" outlineWidth={0.032} outlineColor="#000">{`h=${y.toFixed(0)}m`}</Text>
+    </group>
+  );
+}
+
+function PhysicsObject({ obj, forces, maxMag, colorIdx, isProjectile, geoScale = 1 }) {
+  const groupRef = useRef(), meshRef = useRef();
+  const color    = OBJ_COLORS_3D[colorIdx % OBJ_COLORS_3D.length];
+  const isSphere = ['circle','point_mass','pulley'].includes(obj.type);
+  const w = Math.max(obj.dimensions?.width  ?? 0.8, 0.5);
+  const h = Math.max(obj.dimensions?.height ?? 0.8, 0.5);
+  const r = Math.max(Math.max(w, h) / 2, MIN_R);
+  useFrame(() => {
+    const state = useStore.getState().objectStates[obj.id];
+    if (!state || !groupRef.current || !meshRef.current) return;
+    groupRef.current.position.x = state.position.x;
+    groupRef.current.position.y = state.position.y;
+    meshRef.current.rotation.z  = -(state.angle * Math.PI) / 180;
+  });
+  const { x, y } = obj.position;
+  const labelY = -(isSphere ? r : h / 2) - 0.42;
+  return (
+    <group ref={groupRef} position={[x, y, 0]} scale={[geoScale, geoScale, geoScale]}>
+      {y > 0.3 && isSphere && geoScale <= 2 && (
+        <mesh position={[0, -y + 0.02, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+          <circleGeometry args={[r * 0.65, 14]} />
+          <meshBasicMaterial color="#000000" transparent opacity={Math.max(0.05, 0.3 - y * 0.004)} />
+        </mesh>
+      )}
+      <mesh ref={meshRef} castShadow rotation={[0, 0, -(obj.angle * Math.PI) / 180]}>
+        {isSphere ? <sphereGeometry args={[r, 32, 22]} /> : <boxGeometry args={[w, h, DEPTH]} />}
+        <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.65} metalness={0.08} roughness={0.3} />
+      </mesh>
+      {isSphere && (
+        <>
+          <mesh scale={1.20}><sphereGeometry args={[r, 14, 10]} /><meshBasicMaterial color={color} transparent opacity={0.13} side={THREE.BackSide} /></mesh>
+          <mesh scale={1.45}><sphereGeometry args={[r, 10,  8]} /><meshBasicMaterial color={color} transparent opacity={0.05} side={THREE.BackSide} /></mesh>
+        </>
+      )}
+      <Text position={[0, labelY, DEPTH / 2 + 0.09]} fontSize={0.30} color="#ffffff"
+        anchorX="center" anchorY="top" outlineWidth={0.042} outlineColor="#000020">{obj.label}</Text>
+      {forces.map(f => <ForceArrow key={f.id} force={f} maxMag={maxMag} />)}
+      <InitialVelocityArrow obj={obj} />
+      <VelocityArrow objId={obj.id} />
+    </group>
+  );
+}
+
+function Building({ surf }) {
+  const p1 = surf.points[0], p2 = surf.points[surf.points.length - 1];
+  const bx = (p1.x + p2.x) / 2, baseY = Math.min(p1.y, p2.y);
+  const height = Math.max(Math.abs(p2.y - p1.y), surf.length ?? 0, 5);
+  const bW = 2.4, numFloors = Math.max(1, Math.floor(height / 3.2));
+  return (
+    <group>
+      <mesh position={[bx, baseY + height / 2, 0]}>
+        <boxGeometry args={[bW, height, 3.4]} />
+        <meshStandardMaterial color="#3c3c6a" roughness={0.8} metalness={0.06} emissive="#1a1a55" emissiveIntensity={0.3} />
+      </mesh>
+      <mesh position={[bx, baseY + height / 2, 1.72]}>
+        <planeGeometry args={[bW, height]} />
+        <meshStandardMaterial color="#484878" roughness={0.85} emissive="#24247a" emissiveIntensity={0.2} side={THREE.FrontSide} />
+      </mesh>
+      {Array.from({ length: numFloors - 1 }).map((_, i) => (
+        <mesh key={i} position={[bx, baseY + (i+1)*(height/numFloors), 1.74]}>
+          <planeGeometry args={[bW, 0.045]} /><meshBasicMaterial color="#28284a" />
+        </mesh>
+      ))}
+      {[-bW/2+0.13, bW/2-0.13].map((xOff, ci) => (
+        <mesh key={ci} position={[bx+xOff, baseY+height/2, 1.74]}>
+          <boxGeometry args={[0.20, height, 0.09]} />
+          <meshStandardMaterial color="#26265a" roughness={0.9} emissive="#0f0f40" emissiveIntensity={0.2} />
+        </mesh>
+      ))}
+      {Array.from({ length: numFloors }).flatMap((_, row) =>
+        [-0.58, 0.58].map((xOff, ci) => {
+          const wy = baseY + (row + 0.5) * (height / numFloors);
+          const lit = (row + ci) % 3 !== 2;
+          return (
+            <mesh key={`w${row}_${ci}`} position={[bx+xOff, wy, 1.76]}>
+              <planeGeometry args={[0.55, 0.70]} />
+              <meshStandardMaterial color={lit ? '#9ad4f0' : '#1a2840'} emissive={lit ? '#3a88cc' : '#08101a'} emissiveIntensity={lit ? 0.7 : 0.05} />
+            </mesh>
+          );
+        })
+      )}
+      <mesh position={[bx, baseY+height+0.24, 0]}>
+        <boxGeometry args={[bW+0.40, 0.48, 3.8]} />
+        <meshStandardMaterial color="#1c1c3a" roughness={0.82} metalness={0.1} emissive="#0a0a28" emissiveIntensity={0.15} />
+      </mesh>
+      <mesh position={[bx, baseY+height+0.02, 0.28]}>
+        <boxGeometry args={[bW+0.46, 0.09, 0.09]} />
+        <meshStandardMaterial color="#ffd740" emissive="#ffd740" emissiveIntensity={2.5} />
+      </mesh>
+      <Text position={[bx+bW/2+0.65, baseY+height/2, 1.9]} fontSize={0.34} color="#ffd740"
+        anchorX="left" anchorY="middle" outlineWidth={0.045} outlineColor="#000">{`H = ${height.toFixed(0)} m`}</Text>
+    </group>
+  );
+}
+
+function Incline({ surf }) {
+  const p1 = surf.points[0], p2 = surf.points[surf.points.length - 1];
+  const dx = p2.x-p1.x, dy = p2.y-p1.y;
+  const len = Math.sqrt(dx*dx+dy*dy), angle = Math.atan2(dy, dx);
+  const cx = (p1.x+p2.x)/2, cy = (p1.y+p2.y)/2;
+  return (
+    <group position={[cx, cy, 0]} rotation={[0, 0, angle]}>
+      <mesh><boxGeometry args={[len, 0.20, 5.2]} /><meshStandardMaterial color="#38385e" roughness={0.88} metalness={0.08} emissive="#18183a" emissiveIntensity={0.2} /></mesh>
+      <mesh position={[0, 0.11, 2.62]}><boxGeometry args={[len, 0.05, 0.05]} /><meshBasicMaterial color="#5a60a0" /></mesh>
+      {surf.label && <Text position={[0, 0.45, 2.7]} fontSize={0.30} color="#ffd54f" anchorX="center">{surf.label}</Text>}
+    </group>
+  );
+}
+
+function FloorSlab({ y }) {
+  return (
+    <group>
+      <mesh position={[0, y - 0.11, 0]}><boxGeometry args={[100, 0.22, 9]} /><meshStandardMaterial color="#141428" roughness={0.97} /></mesh>
+      <mesh position={[0, y + 0.001, 0.20]}><boxGeometry args={[100, 0.020, 0.020]} /><meshBasicMaterial color="#28285a" /></mesh>
+    </group>
+  );
+}
+
+const Surface3D = memo(function Surface3D({ surf }) {
+  if (!surf.points || surf.points.length < 2) return null;
+  const p1 = surf.points[0], p2 = surf.points[surf.points.length - 1];
+  if (surf.type === 'floor') return <FloorSlab y={p1.y} />;
+  const angle = Math.atan2(p2.y - p1.y, p2.x - p1.x);
+  const isVert = Math.abs(Math.sin(angle)) > 0.85 || surf.type === 'wall';
+  return isVert ? <Building surf={surf} /> : <Incline surf={surf} />;
+});
+
+function TableSlab({ surf }) {
+  const p1 = surf.points[0], p2 = surf.points[surf.points.length - 1];
+  const cx = (p1.x+p2.x)/2, len = Math.abs(p2.x-p1.x)+1, y = p1.y;
+  return (
+    <group>
+      <mesh position={[cx, y-0.18, 0]}><boxGeometry args={[len, 0.36, 3.5]} /><meshStandardMaterial color="#2a2a4a" roughness={0.85} metalness={0.05} emissive="#12122a" emissiveIntensity={0.15} /></mesh>
+      <mesh position={[cx, y, 1.76]}><boxGeometry args={[len, 0.04, 0.04]} /><meshBasicMaterial color="#5a5a9a" /></mesh>
+    </group>
+  );
+}
+
+function PulleyWheel({ x, y }) {
+  return (
+    <group position={[x, y, 0]}>
+      <mesh rotation={[Math.PI/2, 0, 0]}><torusGeometry args={[0.42, 0.11, 10, 24]} /><meshStandardMaterial color="#888899" metalness={0.7} roughness={0.3} /></mesh>
+      <mesh rotation={[Math.PI/2, 0, 0]}><cylinderGeometry args={[0.08, 0.08, 0.9, 8]} /><meshStandardMaterial color="#555566" metalness={0.8} roughness={0.2} /></mesh>
+      <mesh position={[0, 0.38, 0]}><boxGeometry args={[0.14, 0.76, 0.14]} /><meshStandardMaterial color="#44445a" roughness={0.7} /></mesh>
+    </group>
+  );
+}
+
+function PulleyRope({ objAId, objBId, pulleyX, pulleyY }) {
+  const hSegRef = useRef(), vSegRef = useRef();
+  useFrame(() => {
+    const stA = useStore.getState().objectStates[objAId];
+    const stB = useStore.getState().objectStates[objBId];
+    if (!hSegRef.current || !vSegRef.current) return;
+    const ax = stA?.position?.x ?? (pulleyX - 4);
+    const by = stB?.position?.y ?? (pulleyY - 1);
+    const hLen = Math.max(pulleyX - ax, 0.01);
+    hSegRef.current.position.set((ax + pulleyX) / 2, pulleyY, 0);
+    hSegRef.current.scale.set(hLen, 1, 1);
+    const vLen = Math.max(pulleyY - by, 0.01);
+    vSegRef.current.position.set(pulleyX, (pulleyY + by) / 2, 0);
+    vSegRef.current.scale.set(1, vLen, 1);
+  });
+  const ropeMat = <meshStandardMaterial color="#c8a050" emissive="#c8a050" emissiveIntensity={0.25} metalness={0.15} roughness={0.6} />;
+  return (
+    <>
+      <mesh ref={hSegRef}><boxGeometry args={[1, 0.055, 0.055]} />{ropeMat}</mesh>
+      <mesh ref={vSegRef}><boxGeometry args={[0.055, 1, 0.055]} />{ropeMat}</mesh>
+    </>
+  );
+}
+
+function CameraAutoFit({ blueprint }) {
+  const { camera } = useThree();
+  useEffect(() => {
+    if (!blueprint) return;
+    let minX = Infinity, maxX = -Infinity, minY = 0, maxY = 4;
+    blueprint.objects.forEach(o => {
+      const hw = Math.max((o.dimensions?.width  ?? 1) / 2, MIN_R) + 1;
+      const hh = Math.max((o.dimensions?.height ?? 1) / 2, MIN_R) + 1;
+      minX = Math.min(minX, o.position.x - hw); maxX = Math.max(maxX, o.position.x + hw);
+      minY = Math.min(minY, o.position.y - hh); maxY = Math.max(maxY, o.position.y + hh);
+    });
+    blueprint.surfaces.forEach(s => s.points?.forEach(p => {
+      minX = Math.min(minX, p.x - 1); maxX = Math.max(maxX, p.x + 1);
+      minY = Math.min(minY, p.y);     maxY = Math.max(maxY, p.y + 1);
+    }));
+    if (!isFinite(minX)) return;
+    const spanX = Math.max(maxX - minX, 6), spanY = Math.max(maxY - minY, 6);
+    const isWide = spanX > spanY * 2.5, isTall = spanY > spanX * 3;
+    const span = isWide ? spanX : Math.max(spanX, spanY);
+    const fovRad = (camera.fov * Math.PI) / 180;
+    const dist = (span / 2) / Math.tan(fovRad / 2) * 1.35 + 3;
+    const cx = (minX + maxX) / 2;
+    const cy = isWide ? Math.max((minY + maxY) / 2, spanX * 0.12) : (minY + maxY) / 2;
+    const xOffset = isTall ? 1.5 : isWide ? 0 : span * 0.04;
+    camera.position.set(cx + xOffset, cy, dist);
+    camera.lookAt(cx, cy, 0);
+    camera.updateProjectionMatrix();
+  }, [blueprint, camera]);
+  return null;
+}
+
+function Placeholder() {
+  return <Text position={[0, 1, 0]} fontSize={0.34} color="rgba(200,200,255,0.22)" anchorX="center" anchorY="middle" textAlign="center">{'Upload a physics problem image\nor click "Load Demo"'}</Text>;
+}
+
+function Scene3D() {
+  const blueprint      = useStore(s => s.blueprint);
+  const showTrajectory = useStore(s => s.showTrajectory);
+  if (!blueprint) return <Placeholder />;
+  const isProjectile = blueprint.problem_type === 'projectile';
+  const isPulley     = blueprint.problem_type === 'pulley';
+  const maxMag = Math.max(blueprint.forces.reduce((m, f) => Math.max(m, f.magnitude ?? 0), 1), 1);
+  const allPts = [...blueprint.objects.map(o => o.position), ...blueprint.surfaces.flatMap(s => s.points ?? [])];
+  const xs = allPts.map(p => p.x), ys = allPts.map(p => p.y);
+  const sceneSpan = Math.max(xs.length > 1 ? Math.max(...xs) - Math.min(...xs) : 0, ys.length > 1 ? Math.max(...ys) - Math.min(...ys) : 0, 6);
+  const geoScale = Math.max(1, sceneSpan / 25);
+  const hasFloor = blueprint.surfaces.some(s => s.type === 'floor');
+  const minY = Math.min(0, ...blueprint.surfaces.flatMap(s => (s.points || []).map(p => p.y)), ...blueprint.objects.map(o => o.position.y - (o.dimensions?.height ?? 0.5) / 2));
+  let pulleyX = null, pulleyY = null, ropeConstraint = null;
+  if (isPulley) {
+    ropeConstraint = blueprint.constraints?.find(c => c.type === 'string');
+    if (ropeConstraint) {
+      const tableObj = blueprint.objects.find(o => o.id === ropeConstraint.object_a);
+      const hangObj  = blueprint.objects.find(o => o.id === ropeConstraint.object_b);
+      const tObj = (tableObj?.position?.y ?? 0) >= (hangObj?.position?.y ?? 0) ? tableObj : hangObj;
+      const hObj = tObj === tableObj ? hangObj : tableObj;
+      if (tObj && hObj) { pulleyX = hObj.position.x; pulleyY = tObj.position.y; }
+    }
+  }
+  return (
+    <>
+      <CameraAutoFit blueprint={blueprint} />
+      {!hasFloor && <FloorSlab y={minY} />}
+      {blueprint.surfaces.map(s => {
+        if (s.type === 'floor') return <FloorSlab key={s.id} y={s.points[0].y} />;
+        if (isPulley && s.type === 'line') return <TableSlab key={s.id} surf={s} />;
+        return <Surface3D key={s.id} surf={s} />;
+      })}
+      {isPulley && pulleyX !== null && (
+        <>
+          <PulleyWheel x={pulleyX} y={pulleyY} />
+          {ropeConstraint && <PulleyRope objAId={ropeConstraint.object_a} objBId={ropeConstraint.object_b} pulleyX={pulleyX} pulleyY={pulleyY} />}
+        </>
+      )}
+      {blueprint.objects.map((obj, i) => {
+        const color = OBJ_COLORS_3D[i % OBJ_COLORS_3D.length];
+        return (
+          <React.Fragment key={obj.id}>
+            <PhysicsObject obj={obj} forces={blueprint.forces.filter(f => f.object_id === obj.id)} maxMag={maxMag} colorIdx={i} isProjectile={isProjectile} geoScale={geoScale} />
+            {isProjectile && obj.position.y > 1.5 && geoScale <= 2 && (
+              <HeightIndicator x={obj.position.x + Math.max((obj.dimensions?.width ?? 0.6) / 2, MIN_R)} y={obj.position.y} color={color} />
+            )}
+          </React.Fragment>
+        );
+      })}
+      {showTrajectory && blueprint.objects.map((obj, i) => (
+        <Trajectory key={obj.id + '_t'} objId={obj.id} color={OBJ_COLORS_3D[i % OBJ_COLORS_3D.length]} />
+      ))}
+    </>
+  );
+}
+
+function PhysicsCanvas3D() {
+  const teacherMode = useStore(s => s.teacherMode);
+  return (
+    <div style={{ position:'relative', width:'100%', height:'100%', background:'#0d0d18' }}>
+      <Canvas camera={{ position:[0, 8, 18], fov:48, near:0.1, far:5000 }}
+        gl={{ antialias:true, alpha:false, powerPreference:'high-performance' }}
+        dpr={Math.min(window.devicePixelRatio, 1.5)}
+        onCreated={({ gl }) => { gl.setClearColor('#0d0d18'); }}>
+        <color attach="background" args={['#0d0d18']} />
+        <ambientLight intensity={0.55} />
+        <hemisphereLight skyColor="#1a2060" groundColor="#0d0d18" intensity={0.8} />
+        <directionalLight position={[8, 20, 12]} intensity={1.4} />
+        <directionalLight position={[0, 5, 15]}  intensity={0.7} color="#c8d4ff" />
+        <pointLight position={[-10, 15, 8]} intensity={0.6} color="#4488ff" />
+        <pointLight position={[12,  3, 10]} intensity={0.4} color="#ff9944" />
+        <Grid position={[0, -0.001, 0]} args={[60, 60]} cellSize={1} cellThickness={0.4}
+          cellColor="#1a1a3a" sectionSize={5} sectionThickness={0.7} sectionColor="#252555"
+          fadeDistance={45} fadeStrength={1.0} followCamera={false} infiniteGrid />
+        <Scene3D />
+        <OrbitControls enableRotate={false} enablePan={true} enableZoom={true}
+          mouseButtons={{ LEFT: THREE.MOUSE.PAN, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.PAN }}
+          panSpeed={1.5} zoomSpeed={1.2} minDistance={0.5} maxDistance={5000} makeDefault />
+      </Canvas>
+      {teacherMode && (
+        <div style={{ position:'absolute', top:10, left:10, background:'rgba(171,71,188,0.85)', color:'#fff', padding:'3px 10px', borderRadius:6, fontSize:12, fontWeight:600, pointerEvents:'none' }}>TEACHER MODE</div>
+      )}
+      <div style={{ position:'absolute', bottom:8, right:12, fontSize:10, color:'rgba(255,255,255,0.22)', pointerEvents:'none' }}>Drag to pan &middot; Scroll to zoom</div>
+    </div>
+  );
+}
+/* ================================================================
+   IMAGE UPLOAD + BLUEPRINT SUMMARY
+================================================================ */
+const TYPE_META = {
+  projectile:     { label:'Projectile',     color:'#4fc3f7', icon:'Target' },
+  inclined_plane: { label:'Inclined Plane', color:'#ffd740', icon:'Slope' },
+  pulley:         { label:'Pulley',         color:'#ab47bc', icon:'Wheel' },
+  collision:      { label:'Collision',      color:'#ff7043', icon:'Boom' },
+  spring:         { label:'Spring',         color:'#66bb6a', icon:'Coil' },
+  other:          { label:'Other',          color:'#8888aa', icon:'Data' },
+};
+const UPLOAD_OBJ_COLORS = ['#4fc3f7','#ff7043','#66bb6a','#ab47bc','#ffd740','#26c6da'];
+
+function DataRow({ label, value, accent }) {
+  return (
+    <div style={{ display:'flex', justifyContent:'space-between', alignItems:'baseline', padding:'2.5px 0', fontSize:11, borderBottom:'1px solid #12122a' }}>
+      <span style={{ color:'#7777aa' }}>{label}</span>
+      <span style={{ color: accent || '#d0d0e8', fontWeight: accent ? 700 : 400 }}>{value}</span>
+    </div>
+  );
+}
+
+function SectionHead({ title }) {
+  return <div style={{ fontSize:9, fontWeight:700, color:'#555577', letterSpacing:'0.08em', textTransform:'uppercase', padding:'8px 0 3px', borderBottom:'1px solid #1f1f40' }}>{title}</div>;
+}
+
+function BlueprintSummary() {
+  const blueprint = useStore(s => s.blueprint);
+  if (!blueprint) return null;
+  const meta = TYPE_META[blueprint.problem_type] || TYPE_META.other;
+  const kv   = { ...(blueprint.known_results || {}), ...(blueprint.known_values || {}) };
+  const g    = blueprint.environment?.g ?? 9.8;
+  const scalars = [
+    { label:'g', value:`${g} m/s2` },
+    kv.time            != null && { label:'t  (time)',         value:`${kv.time} s` },
+    kv.spring_constant != null && { label:'k  (spring)',       value:`${kv.spring_constant} N/m` },
+    kv.tension         != null && { label:'T  (tension)',      value:`${kv.tension} N` },
+    kv.mu_k            != null && { label:'uk (kinetic)',      value:kv.mu_k },
+    kv.mu_s            != null && { label:'us (static)',       value:kv.mu_s },
+    kv.distance        != null && { label:'D  (distance)',     value:`${kv.distance} m` },
+    kv.height          != null && { label:'H  (height)',       value:`${kv.height} m` },
+    kv.angle_degrees   != null && { label:'angle',            value:`${kv.angle_degrees} deg` },
+    kv.acceleration    != null && { label:'a  (accel)',        value:`${Number(kv.acceleration).toFixed(2)} m/s2` },
+  ].filter(Boolean);
+  const frictionSurfs = blueprint.surfaces.filter(s => !s.properties?.is_frictionless && (s.properties?.mu_k ?? 0) > 0);
+  return (
+    <div className="section" style={{ paddingBottom:12 }}>
+      <div className="section-title">Extracted Data</div>
+      <div className="bp-summary" style={{ padding:'0 2px' }}>
+        <div style={{ display:'flex', alignItems:'flex-start', gap:8, padding:'8px 10px', background:`${meta.color}14`, border:`1px solid ${meta.color}38`, borderRadius:7, marginBottom:4 }}>
+          <div style={{ minWidth:0 }}>
+            <div style={{ fontWeight:700, color:meta.color, fontSize:12.5 }}>{meta.label}</div>
+            {blueprint.description && (
+              <div style={{ fontSize:9.5, color:'#8888b8', lineHeight:1.45, marginTop:2 }}>
+                {blueprint.description.length > 90 ? blueprint.description.slice(0, 90) + '...' : blueprint.description}
+              </div>
+            )}
+          </div>
+        </div>
+        <SectionHead title="Objects" />
+        {blueprint.objects.map((obj, i) => {
+          const clr = UPLOAD_OBJ_COLORS[i % UPLOAD_OBJ_COLORS.length];
+          const vx  = obj.initial_velocity?.x ?? 0, vy = obj.initial_velocity?.y ?? 0;
+          const spd = Math.sqrt(vx*vx + vy*vy);
+          const hasV = spd > 0.01;
+          const hasBoth = hasV && Math.abs(vx) > 0.01 && Math.abs(vy) > 0.01;
+          const mu = obj.properties?.mu_k, k = obj.properties?.spring_constant;
+          return (
+            <div key={obj.id} style={{ borderLeft:`3px solid ${clr}`, background:`${clr}0d`, borderRadius:'0 5px 5px 0', padding:'5px 8px', marginTop:5 }}>
+              <div style={{ display:'flex', justifyContent:'space-between', marginBottom:3 }}>
+                <span style={{ fontWeight:700, color:clr, fontSize:12.5 }}>{obj.label || obj.id}</span>
+                <span style={{ fontSize:9.5, color:'#666688' }}>{obj.type === 'circle' ? 'sphere' : 'block'}</span>
+              </div>
+              {obj.mass != null && <DataRow label="mass"   value={`${obj.mass} kg`} accent={clr} />}
+              {obj.position.y > 0.6 && <DataRow label="height y" value={`${obj.position.y.toFixed(1)} m`} />}
+              {Math.abs(obj.position.x) > 0.01 && <DataRow label="x pos"  value={`${obj.position.x.toFixed(0)} m`} />}
+              {hasV  && <DataRow label="v0" value={`${spd.toFixed(1)} m/s`} accent={clr} />}
+              {hasBoth && (
+                <div style={{ fontSize:9.5, color:'#666699', paddingLeft:4, paddingBottom:2, lineHeight:1.9 }}>
+                  {Math.abs(vx) > 0.01 && <span>vx = {vx.toFixed(1)} m/s</span>}
+                  {Math.abs(vx) > 0.01 && Math.abs(vy) > 0.01 && <span style={{ margin:'0 5px', color:'#33334a' }}>|</span>}
+                  {Math.abs(vy) > 0.01 && <span>vy = {vy.toFixed(1)} m/s</span>}
+                </div>
+              )}
+              {mu != null && mu > 0 && <DataRow label="uk (surface)" value={mu} />}
+              {k  != null            && <DataRow label="k (spring)"   value={`${k} N/m`} />}
+            </div>
+          );
+        })}
+        {frictionSurfs.length > 0 && (
+          <>
+            <SectionHead title="Surfaces" />
+            {frictionSurfs.map(s => (
+              <div key={s.id} style={{ display:'flex', justifyContent:'space-between', fontSize:11, padding:'3px 0', borderBottom:'1px solid #12122a' }}>
+                <span style={{ color:'#7777aa' }}>{s.type}{s.angle ? ` (${s.angle} deg)` : ''}</span>
+                <span style={{ color:'#ffb74d', fontWeight:600 }}>uk = {s.properties.mu_k}</span>
+              </div>
+            ))}
+          </>
+        )}
+        <SectionHead title="Given Values" />
+        {scalars.map((entry, i) => <DataRow key={i} label={entry.label} value={entry.value} />)}
+        <DataRow label="force arrows" value={blueprint.forces.length} />
+        {blueprint.constraints?.length > 0 && <DataRow label="constraints" value={blueprint.constraints.length} />}
+      </div>
+    </div>
+  );
+}
+
+function ImageUpload() {
+  const fileRef   = useRef(null);
+  const cancelRef = useRef(false);
+  const [dragging,    setDragging]    = useState(false);
+  const [apiKeyInput, setApiKeyInput] = useState('');
+  const [testing,     setTesting]     = useState(false);
+  const [testResult,  setTestResult]  = useState(null);
+  const [errorFull,   setErrorFull]   = useState(false);
+  const [usedModel,   setUsedModel]   = useState(null);
+  const [tryingModel, setTryingModel] = useState(null);
+  const [analysisPass, setAnalysisPass] = useState({ pass:0, label:'' });
+  const geminiApiKey      = useStore(s => s.geminiApiKey);
+  const modelId           = useStore(s => s.selectedModelId);
+  const setModelId        = useStore(s => s.setSelectedModelId);
+  const setApiKey         = useStore(s => s.setApiKey);
+  const uploadedImage     = useStore(s => s.uploadedImage);
+  const analysisStatus    = useStore(s => s.analysisStatus);
+  const analysisError     = useStore(s => s.analysisError);
+  const setUploadedImage  = useStore(s => s.setUploadedImage);
+  const setAnalysisStatus = useStore(s => s.setAnalysisStatus);
+  const setBlueprint      = useStore(s => s.setBlueprint);
+
+  const provider = detectProvider(apiKeyInput.trim());
+  const availableModels = modelsForProvider(provider);
+  useEffect(() => {
+    const found = availableModels.find(m => m.id === modelId);
+    if (!found) setModelId(defaultModelForProvider(provider));
+  }, [provider]);
+
+  const sanitizeKey = (raw) => raw.trim().replace(/[^\x20-\x7E]/g, '');
+
+  const saveKey = useCallback(() => {
+    const key = sanitizeKey(apiKeyInput);
+    const p = detectProvider(key);
+    const currentProvider = detectProvider(geminiApiKey);
+    if (p !== currentProvider) setModelId(defaultModelForProvider(p));
+    setApiKey(key); setApiKeyInput(key); setTestResult(null);
+  }, [apiKeyInput, geminiApiKey, setApiKey, setModelId]);
+
+  const testKey = useCallback(async () => {
+    const key = sanitizeKey(apiKeyInput);
+    if (!key) return;
+    setTesting(true); setTestResult(null);
+    try {
+      const v = createVisionEngine(key, modelId);
+      const { modelId: workingModel } = await v.testConnection();
+      setApiKey(key); setApiKeyInput(key);
+      if (workingModel !== modelId) setModelId(workingModel);
+      setTestResult('ok:' + workingModel + (workingModel !== modelId ? ` (switched from ${modelId})` : ''));
+    } catch (err) { setTestResult('fail:' + err.message); }
+    finally { setTesting(false); }
+  }, [apiKeyInput, modelId, setApiKey, setModelId]);
+
+  const processImage = useCallback(async (file) => {
+    if (!file || !file.type.startsWith('image/')) return;
+    if (!geminiApiKey) { setAnalysisStatus('error', 'No API key saved. Enter your key and click Save.'); return; }
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      const dataUrl = e.target.result;
+      const base64  = dataUrl.split(',')[1];
+      const mimeType = file.type;
+      setUploadedImage({ dataUrl, base64, mimeType });
+      setAnalysisStatus('analyzing');
+      setErrorFull(false);
+      cancelRef.current = false;
+      setTryingModel(modelId);
+      setAnalysisPass({ pass:0, label:'' });
+      try {
+        const vision = createVisionEngine(geminiApiKey, modelId);
+        setUsedModel(null);
+        let attempt = 0;
+        const { data: raw, usedModel: actualModel } = await vision.analyzeImage(
+          base64, mimeType,
+          (fb) => { if (!cancelRef.current) { attempt++; setTryingModel(fb); setAnalysisPass({ pass:0, label:'' }); } },
+          (pass, label) => { if (!cancelRef.current) setAnalysisPass({ pass, label }); }
+        );
+        if (cancelRef.current) return;
+        setUsedModel(actualModel);
+        const parsed     = parseBlueprint(raw);
+        const withForces = autoComputeForces(parsed);
+        setBlueprint(withForces);
+      } catch (err) { if (!cancelRef.current) setAnalysisStatus('error', err.message); }
+      finally { setTryingModel(null); setAnalysisPass({ pass:0, label:'' }); }
+    };
+    reader.readAsDataURL(file);
+  }, [geminiApiKey, modelId, setUploadedImage, setAnalysisStatus, setBlueprint]);
+
+  const cancelAnalysis = useCallback(() => { cancelRef.current = true; setTryingModel(null); setAnalysisStatus('idle'); }, [setAnalysisStatus]);
+
+  const loadDemo = useCallback(() => {
+    setUploadedImage(null);
+    setBlueprint(autoComputeForces(parseBlueprint(DEMO_BLUEPRINT)));
+  }, [setUploadedImage, setBlueprint]);
+
+  const onDrop = useCallback((e) => { e.preventDefault(); setDragging(false); processImage(e.dataTransfer.files[0]); }, [processImage]);
+
+  const isTestFail = testResult?.startsWith('fail');
+
+  return (
+    <div className="upload-panel">
+      <div className="section">
+        <div className="section-title">AI Vision API Key</div>
+        <div style={{ display:'flex', gap:4 }}>
+          <input type="password" value={apiKeyInput} onChange={e => { setApiKeyInput(e.target.value); setTestResult(null); }}
+            placeholder="AIza (Gemini)  or  gsk_ (Groq)  or  sk-or- (OpenRouter)"
+            className="input-field" style={{ flex:1 }} onKeyDown={e => e.key === 'Enter' && saveKey()} />
+          <button className="btn-secondary" onClick={saveKey}>Save</button>
+          <button className="btn-secondary" onClick={testKey} disabled={!apiKeyInput.trim() || testing}>{testing ? '...' : 'Test'}</button>
+        </div>
+        {testResult?.startsWith('ok') && <p style={{ fontSize:11, color:'#66bb6a', marginTop:4 }}>Key valid - {testResult.slice(3)}</p>}
+        {isTestFail && <p style={{ fontSize:11, color:'#ef5350', marginTop:4, lineHeight:1.4 }}>{testResult.slice(5)}</p>}
+        {!geminiApiKey && !testResult && (
+          <div style={{ fontSize:11, color:'#ff7043', marginTop:4, lineHeight:1.6 }}>
+            Paste a free API key:<br/>
+            <a href="https://console.groq.com/keys" target="_blank" rel="noreferrer" style={{ color:'#ffd740', fontWeight:600 }}>console.groq.com - Groq (fastest)</a><br/>
+            <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer" style={{ color:'#66bb6a' }}>aistudio.google.com - Gemini/Gemma</a>
+          </div>
+        )}
+        {provider === 'groq'       && !testResult && <p style={{ fontSize:11, color:'#ffd740', marginTop:4 }}>Groq key detected - fast mode</p>}
+        {provider === 'openrouter' && !testResult && <p style={{ fontSize:11, color:'#66bb6a', marginTop:4 }}>OpenRouter key detected</p>}
+        {provider === 'gemini'     && !testResult && <p style={{ fontSize:11, color:'#66bb6a', marginTop:4 }}>Google AI Studio key - Gemma 4 31B selected.</p>}
+        {provider === 'unknown' && apiKeyInput.trim() && !testResult && (
+          <div style={{ fontSize:11, color:'#ef5350', marginTop:4, lineHeight:1.6, background:'rgba(239,83,80,0.08)', border:'1px solid rgba(239,83,80,0.25)', borderRadius:6, padding:'6px 8px' }}>
+            Key not recognized. Expected gsk_ (Groq), sk-or- (OpenRouter), or AIza (Gemini).<br/>
+            <a href="https://console.groq.com/keys" target="_blank" rel="noreferrer" style={{ color:'#ffd740', fontWeight:700 }}>Get a free Groq key</a>
+          </div>
+        )}
+        {geminiApiKey && (provider === 'groq' || provider === 'openrouter') && !testResult && (
+          <p style={{ fontSize:11, color:'#8888aa', marginTop:4 }}>Key saved. Click Test to verify.</p>
+        )}
+      </div>
+
+      <div className="section">
+        <div className="section-title">Model</div>
+        <select className="input-field" value={modelId} onChange={e => { setModelId(e.target.value); setTestResult(null); }} style={{ width:'100%' }}>
+          {availableModels.map(m => <option key={m.id} value={m.id}>{m.label}</option>)}
+        </select>
+        <p style={{ fontSize:10, color:'#8888aa', marginTop:3 }}>
+          {provider === 'groq' ? 'Groq - usually under 5 seconds.' :
+           provider === 'openrouter' ? 'OpenRouter free models - may be slow.' :
+           'Free-tier Gemini/Gemma via Google AI Studio.'}
+        </p>
+      </div>
+
+      <div className="section">
+        <div className="section-title">Upload Problem Image</div>
+        <div className={`drop-zone ${dragging ? 'dragging' : ''}`}
+          onDragOver={e => { e.preventDefault(); setDragging(true); }}
+          onDragLeave={() => setDragging(false)} onDrop={onDrop} onClick={() => fileRef.current?.click()}>
+          {uploadedImage ? (
+            <img src={uploadedImage.dataUrl} alt="Problem" style={{ width:'100%', borderRadius:6, maxHeight:130, objectFit:'contain' }} />
+          ) : (
+            <div className="drop-hint">
+              <span style={{ fontSize:26 }}>Image</span>
+              <span>Drop image or click to browse</span>
+              <span style={{ fontSize:11, opacity:.55 }}>PNG - JPG - WEBP</span>
+            </div>
+          )}
+        </div>
+        <input ref={fileRef} type="file" accept="image/*" style={{ display:'none' }} onChange={e => processImage(e.target.files[0])} />
+        {analysisStatus === 'analyzing' && (
+          <div className="status-msg analyzing" style={{ flexDirection:'column', alignItems:'stretch', gap:4 }}>
+            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+              <span style={{ display:'flex', alignItems:'center', gap:6 }}>
+                <span className="spinner" />
+                {(tryingModel || modelId).split('/').pop()}
+              </span>
+              <button onClick={cancelAnalysis} style={{ background:'none', border:'1px solid #ff7043', color:'#ff7043', borderRadius:4, padding:'1px 7px', fontSize:11, cursor:'pointer' }}>Cancel</button>
+            </div>
+            {analysisPass.pass > 0 && (
+              <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                <div style={{ display:'flex', gap:3 }}>
+                  {[1,2,3].map(p => <div key={p} style={{ width:8, height:8, borderRadius:'50%', background: p < analysisPass.pass ? '#66bb6a' : p === analysisPass.pass ? '#ffd740' : '#333355', transition:'background 0.3s' }} />)}
+                </div>
+                <span style={{ fontSize:10, opacity:.85 }}>Pass {analysisPass.pass}/3 - {analysisPass.label}</span>
+              </div>
+            )}
+          </div>
+        )}
+        {analysisStatus === 'error' && analysisError && (
+          <div className="status-msg error" style={{ flexDirection:'column', alignItems:'flex-start', gap:6 }}>
+            <div style={{ display:'flex', alignItems:'center', gap:6, width:'100%', cursor:'pointer' }} onClick={() => setErrorFull(p => !p)}>
+              <span>Analysis failed</span>
+              <span style={{ marginLeft:'auto', fontSize:10, opacity:.6 }}>{errorFull ? 'collapse' : 'details'}</span>
+            </div>
+            {errorFull ? (
+              <pre style={{ fontSize:10, whiteSpace:'pre-wrap', wordBreak:'break-word', color:'#ffab91', lineHeight:1.5, maxHeight:160, overflowY:'auto', background:'rgba(0,0,0,0.25)', padding:6, borderRadius:4, width:'100%' }}>{analysisError}</pre>
+            ) : (
+              <span style={{ fontSize:11, opacity:.8 }}>{analysisError.split('\n')[0].substring(0, 90)}</span>
+            )}
+          </div>
+        )}
+        {analysisStatus === 'done' && (
+          <div className="status-msg done" style={{ flexDirection:'column', alignItems:'flex-start', gap:2 }}>
+            <span>Blueprint extracted successfully</span>
+            {usedModel && usedModel !== modelId && <span style={{ fontSize:10, opacity:.75 }}>(fell back to {usedModel})</span>}
+          </div>
+        )}
+      </div>
+
+      <div className="section">
+        <button className="btn-primary" style={{ width:'100%' }} onClick={loadDemo}>Load Demo - 30 deg Inclined Plane</button>
+        <p style={{ fontSize:10, color:'#8888aa', marginTop:4, textAlign:'center' }}>No API key needed for demo</p>
+      </div>
+
+      <BlueprintSummary />
+    </div>
+  );
+}
+/* ================================================================
+   SOCRATIC TUTOR PANEL
+================================================================ */
+function buildBlueprintSummary(blueprint, simTime, objectStates) {
+  if (!blueprint) return 'No simulation loaded.';
+  const lines = [
+    `Problem: ${blueprint.description}`,
+    `Type: ${blueprint.problem_type}`,
+    `Time elapsed: ${simTime.toFixed(2)} s`,
+  ];
+  blueprint.objects.forEach(obj => {
+    const st = objectStates[obj.id];
+    lines.push(`Object "${obj.label}" (${obj.mass} kg): pos=(${st ? st.position.x.toFixed(2) : obj.position.x}, ${st ? st.position.y.toFixed(2) : obj.position.y}) m, speed=${st ? st.speed.toFixed(2) : 0} m/s`);
+  });
+  blueprint.forces.forEach(f => lines.push(`Force ${f.label}: ${f.magnitude?.toFixed(2)} N at ${f.angle_degrees} deg`));
+  if (blueprint.known_results?.acceleration != null) lines.push(`Expected acceleration: ${blueprint.known_results.acceleration} m/s2`);
+  return lines.join('\n');
+}
+
+function formatContent(text) {
+  const parts = text.split(/(\*\*[^*]+\*\*)/g);
+  return parts.map((part, i) => {
+    if (part.startsWith('**') && part.endsWith('**')) {
+      return <span key={i} className="force-highlight">{part.slice(2, -2)}</span>;
+    }
+    return part;
+  });
+}
+
+const STARTER_QUESTIONS = {
+  projectile:     ['What is the velocity at the highest point?','How long does the object stay in the air?','At what height do the two objects meet?','What is the acceleration at the peak?'],
+  inclined_plane: ['What forces act on the block?','How does friction affect the acceleration?','How do I find the normal force on a slope?','What is the net force along the ramp?'],
+  pulley:         ['Why do both objects have the same acceleration?','How do I find the tension in the rope?','What is the net force on the system?','When does object B hit the floor?'],
+  collision:      ['Is momentum conserved here?','What is the velocity after the collision?','How much kinetic energy is lost?','What type of collision is this?'],
+  spring:         ['What is the spring constant?','Where is the equilibrium position?','How does amplitude affect the period?','What is the maximum velocity?'],
+  default:        ['What forces act on the object?','How do I find the acceleration?','What does Newton second law say here?','How is energy conserved in this problem?'],
+};
+
+function SocraticPanel() {
+  const [input, setInput] = useState('');
+  const endRef   = useRef(null);
+  const inputRef = useRef(null);
+  const geminiApiKey  = useStore(s => s.geminiApiKey);
+  const modelId       = useStore(s => s.selectedModelId);
+  const blueprint     = useStore(s => s.blueprint);
+  const simTime       = useStore(s => s.simTime);
+  const objectStates  = useStore(s => s.objectStates);
+  const tutorHistory  = useStore(s => s.tutorHistory);
+  const tutorLoading  = useStore(s => s.tutorLoading);
+  const addTutorMsg   = useStore(s => s.addTutorMsg);
+  const setTutorLoading = useStore(s => s.setTutorLoading);
+  const setHighlightedForces = useStore(s => s.setHighlightedForces);
+  useEffect(() => { endRef.current?.scrollIntoView({ behavior:'smooth' }); }, [tutorHistory, tutorLoading]);
+
+  const sendMessage = useCallback(async (text) => {
+    const q = text.trim();
+    if (!q || !blueprint || !geminiApiKey || tutorLoading) return;
+    addTutorMsg('user', q);
+    setTutorLoading(true);
+    setInput('');
+    try {
+      const vision = createVisionEngine(geminiApiKey, modelId);
+      const summary = buildBlueprintSummary(blueprint, simTime, objectStates);
+      const recentHistory = tutorHistory.slice(-6);
+      const response = await vision.chat(q, summary, recentHistory);
+      addTutorMsg('assistant', response);
+      const forceLabels = extractHighlightedForces(response);
+      if (forceLabels.length) { setHighlightedForces(forceLabels); setTimeout(() => setHighlightedForces([]), 4000); }
+    } catch (err) { addTutorMsg('assistant', `Error: ${err.message}`); }
+    finally { setTutorLoading(false); }
+  }, [blueprint, geminiApiKey, modelId, tutorLoading, tutorHistory, simTime, objectStates, addTutorMsg, setTutorLoading, setHighlightedForces]);
+
+  const onKeyDown = (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(input); } };
+
+  return (
+    <div className="tutor-panel">
+      <div className="tutor-header">
+        <span>Socratic Tutor</span>
+        {geminiApiKey ? <span className="badge green">{modelId.split('/').pop()}</span> : <span className="badge red">API key needed</span>}
+      </div>
+      <div className="tutor-messages">
+        {tutorHistory.length === 0 && (
+          <div className="tutor-welcome">
+            <p>Ask me anything about this simulation. I will guide you with questions!</p>
+            <p style={{ fontSize:11, opacity:.6 }}>Forces in <span className="force-highlight">bold</span> will glow on canvas.</p>
+          </div>
+        )}
+        {tutorHistory.map(msg => (
+          <div key={msg.id} className={`tutor-msg ${msg.role}`}>
+            <div className="msg-role">{msg.role === 'user' ? 'You' : 'Tutor'}</div>
+            <div className="msg-body">{formatContent(msg.content)}</div>
+          </div>
+        ))}
+        {tutorLoading && (
+          <div className="tutor-msg assistant">
+            <div className="msg-role">Tutor</div>
+            <div className="msg-body typing-dots"><span /><span /><span /></div>
+          </div>
+        )}
+        <div ref={endRef} />
+      </div>
+      {tutorHistory.length === 0 && blueprint && (
+        <div className="starters">
+          {(STARTER_QUESTIONS[blueprint.problem_type] || STARTER_QUESTIONS.default).map(q => (
+            <button key={q} className="starter-btn" onClick={() => sendMessage(q)}>{q}</button>
+          ))}
+        </div>
+      )}
+      <div className="tutor-input-area">
+        <textarea ref={inputRef} className="tutor-input" value={input}
+          onChange={e => setInput(e.target.value)} onKeyDown={onKeyDown}
+          placeholder={blueprint ? 'Ask about forces, motion, energy...' : 'Load a problem first'}
+          disabled={!blueprint || !geminiApiKey || tutorLoading} rows={2} />
+        <button className="send-btn" onClick={() => sendMessage(input)} disabled={!input.trim() || !blueprint || !geminiApiKey || tutorLoading}>
+          &#8593;
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* ================================================================
+   APP ROOT
+================================================================ */
+function KeyboardHints() {
+  return (
+    <div style={{ display:'flex', gap:12, marginLeft:'auto', alignItems:'center' }}>
+      {[['Space','Play/Pause'],['R','Reset'],['ArrowR','Step frame'],['Scroll','Zoom']].map(([key, label]) => (
+        <span key={key} style={{ fontSize:11, color:'#8888aa', display:'flex', alignItems:'center', gap:4 }}>
+          <kbd style={{ background:'#1a1a3a', border:'1px solid #252545', borderRadius:4, padding:'1px 5px', fontFamily:'monospace', fontSize:11, color:'#ccc' }}>{key}</kbd>
+          {label}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+function App() {
+  const { play, pause, reset, stepFrame } = useSimulation();
+  const simState = useStore(s => s.simState);
+  const onKey = useCallback((e) => {
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+    if (e.key === ' ') { e.preventDefault(); simState === 'running' ? pause() : play(); }
+    if (e.key === 'r' || e.key === 'R') reset();
+    if (e.key === 'ArrowRight') stepFrame();
+  }, [simState, play, pause, reset, stepFrame]);
+  useEffect(() => { window.addEventListener('keydown', onKey); return () => window.removeEventListener('keydown', onKey); }, [onKey]);
+
+  return (
+    <SimulationContext.Provider value={{ play, pause, reset, stepFrame }}>
+      <div className="app">
+        <header className="app-header">
+          <div className="app-logo">Physics<span>Sim</span></div>
+          <div className="app-subtitle">AI-Powered 3D Physics Laboratory</div>
+          <KeyboardHints />
+        </header>
+        <div className="app-body">
+          <aside className="left-panel"><ImageUpload /></aside>
+          <main className="canvas-wrapper"><PhysicsCanvas3D /></main>
+          <aside className="right-panel"><SocraticPanel /></aside>
+        </div>
+        <footer className="bottom-bar">
+          <TimeControls />
+          <div style={{ width:1, background:'#252545', alignSelf:'stretch', margin:'6px 0' }} />
+          <VectorControls />
+        </footer>
+        <MissingDataModal />
+      </div>
+    </SimulationContext.Provider>
+  );
+}
+
+/* ================================================================
+   MOUNT
+================================================================ */
+createRoot(document.getElementById('root')).render(
+  <React.StrictMode><App /></React.StrictMode>
+);
+</script>
+</body>
+</html>
